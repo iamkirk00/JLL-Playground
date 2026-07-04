@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NPC &amp; CAP — The Rookery</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐧</text></svg>">
+<link rel="stylesheet" href="css/style.css">
+<script type="importmap">
+  { "imports": { "three": "./js/three.module.min.js" } }
+</script>
+</head>
+<body>
+<header id="topbar">
+  <div class="brand">
+    <span class="brand-icon">🐧</span>
+    <div>
+      <h1>NPC &amp; CAP</h1>
+      <p class="brand-sub">The Rookery — a dialectic companion stage</p>
+    </div>
+  </div>
+  <nav id="tabs">
+    <button class="tab active" data-tab="stage">Stage</button>
+    <button class="tab" data-tab="characters">Characters</button>
+    <button class="tab" data-tab="sheet">Character Sheet</button>
+    <button class="tab" data-tab="settings">Settings</button>
+  </nav>
+</header>
+
+<!-- ============ STAGE ============ -->
+<main id="view-stage" class="view active">
+  <div id="stage-wrap">
+    <canvas id="stage"></canvas>
+    <div id="bubble-npc" class="bubble npc hidden"></div>
+    <div id="bubble-cap" class="bubble cap hidden"></div>
+    <div id="stage-hint">drag to orbit · scroll to zoom</div>
+    <div id="anim-bar">
+      <span class="anim-label">Direct them:</span>
+      <button class="anim-btn" data-anim="wave">👋 Wave</button>
+      <button class="anim-btn" data-anim="waddle">🚶 Waddle</button>
+      <button class="anim-btn" data-anim="laugh">😂 Laugh</button>
+      <button class="anim-btn" data-anim="think">🤔 Think</button>
+      <button class="anim-btn" data-anim="excited">🎉 Excited</button>
+      <button class="anim-btn" data-anim="shrug">🤷 Shrug</button>
+    </div>
+  </div>
+
+  <aside id="chat-panel">
+    <div id="chat-head">
+      <span class="chat-title">Talk to</span>
+      <div id="who-picker">
+        <button class="who active" data-who="cap">CAP</button>
+        <button class="who" data-who="npc">NPC</button>
+        <button class="who" data-who="both">Both</button>
+      </div>
+      <button id="btn-banter" title="Let NPC and CAP riff with each other">✨ Let them chat</button>
+    </div>
+    <div id="brain-status" class="offline">scripted mode — add an API key in Settings for live AI</div>
+    <div id="chat-log"></div>
+    <form id="chat-form">
+      <input id="chat-input" type="text" autocomplete="off"
+             placeholder="Share a goal, a doubt, a story…">
+      <button id="chat-send" type="submit">Send</button>
+    </form>
+  </aside>
+</main>
+
+<!-- ============ CHARACTERS ============ -->
+<main id="view-characters" class="view">
+  <div class="page-intro">
+    <h2>Character Studio</h2>
+    <p>These fields become each penguin's mind. Everything here is woven into their
+       system prompt (AI mode) and shades their scripted lines. Saved in your browser —
+       use Export to back up or move between devices.</p>
+    <div class="row-btns">
+      <button id="btn-export-chars">⬇ Export JSON</button>
+      <label class="filebtn">⬆ Import JSON<input id="file-import-chars" type="file" accept=".json"></label>
+      <button id="btn-reset-chars" class="danger">Reset to defaults</button>
+    </div>
+  </div>
+  <div id="char-editors"></div>
+</main>
+
+<!-- ============ SHEET ============ -->
+<main id="view-sheet" class="view">
+  <div class="page-intro">
+    <h2>Character Sheet Export</h2>
+    <p>Generate a model sheet with turnaround views, poses, and expression close-ups —
+       ready for thumbnails, posts, and your site. Click any cell in the preview to
+       download that single render as a transparent PNG.</p>
+    <div class="row-btns">
+      <div class="seg" id="sheet-char-pick">
+        <button class="seg-btn active" data-char="cap">CAP</button>
+        <button class="seg-btn" data-char="npc">NPC</button>
+      </div>
+      <button id="btn-gen-sheet">🎬 Generate sheet</button>
+      <button id="btn-dl-sheet" disabled>⬇ Download full sheet PNG</button>
+    </div>
+  </div>
+  <div id="sheet-preview-wrap"><canvas id="sheet-preview"></canvas></div>
+</main>
+
+<!-- ============ SETTINGS ============ -->
+<main id="view-settings" class="view">
+  <div class="page-intro">
+    <h2>Settings</h2>
+    <p>With an Anthropic API key, NPC &amp; CAP think with Claude — in persona, drawing on
+       their backstories and memories, and challenging your thinking. Without one, they
+       fall back to their built-in scripted personalities.</p>
+  </div>
+  <div class="settings-card">
+    <label class="field">
+      <span>Anthropic API key</span>
+      <input id="set-apikey" type="password" placeholder="sk-ant-…">
+      <small>Stored only in this browser (localStorage). Sent only to api.anthropic.com.
+             Create one at console.anthropic.com.</small>
+    </label>
+    <label class="field">
+      <span>Model</span>
+      <select id="set-model">
+        <option value="claude-sonnet-5">Claude Sonnet 5 (recommended)</option>
+        <option value="claude-opus-4-8">Claude Opus 4.8 (deepest)</option>
+        <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5 (fastest/cheapest)</option>
+      </select>
+    </label>
+    <div class="row-btns">
+      <button id="btn-save-settings">Save</button>
+      <button id="btn-test-key">Test connection</button>
+      <span id="test-result"></span>
+    </div>
+  </div>
+</main>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
