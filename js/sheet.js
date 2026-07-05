@@ -69,11 +69,11 @@ function renderCell(charId, { pose = 'stand', expr = null, yaw = 0, framing = 'f
   p.setPose(pose, expr);
 
   if (framing === 'bust') {
-    r.camera.position.set(0, 2.35, 3.1);
-    r.camera.lookAt(0, 2.15, 0);
+    r.camera.position.set(0, 2.35, 3.25);
+    r.camera.lookAt(0, 1.98, 0);
   } else {
-    r.camera.position.set(0, 1.55, 6.4);
-    r.camera.lookAt(0, 1.35, 0);
+    r.camera.position.set(0, 1.55, 6.6);
+    r.camera.lookAt(0, 1.4, 0);
   }
   r.renderer.render(r.scene, r.camera);
   return r.renderer.domElement;
