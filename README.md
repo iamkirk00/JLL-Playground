@@ -9,14 +9,16 @@ An interactive, AI-enabled 3D stage for two penguin personas:
   dialectic companion who challenges your thinking toward success and usually ends
   with a question or a small concrete challenge.
 
-Both are fully rigged, animated, real-time 3D characters (procedural toon shading,
-no external assets) who chat with you — and with each other.
+Both are fully rigged, animated **living sketches** — layered pencil-style SVG
+puppets faithful to the original concept art (graphite strokes, hatch shading,
+cream paper), with a boiling-line effect that re-jitters the linework like
+hand-drawn pencil animation. No external assets, no 3D engine.
 
 ## Features
 
-- **3D stage** — cel-shaded penguins with seamless idle/waddle/wave/laugh/think/
-  shrug/excited animations, blinking, talking beaks, and speech bubbles pinned above
-  their heads. Drag to orbit, scroll to zoom.
+- **Sketchbook stage** — the penguins live on cream paper with idle/waddle/wave/
+  laugh/think/shrug/excited animations, blinking, talking beaks, and speech
+  bubbles pinned above their heads.
 - **AI brain** — add your Anthropic API key in *Settings* and the penguins respond
   in-persona via Claude, drawing on their editable backstories and memories. Replies
   start with an emote tag (`[wave]`, `[think]`, …) that drives their animation.
@@ -26,9 +28,10 @@ no external assets) who chat with you — and with each other.
 - **Duo mode** — talk to *Both*, or hit *“Let them chat”* and watch NPC & CAP riff
   with each other (AI-driven when a key is set, scripted otherwise).
 - **Character sheet export** — one click renders a full model sheet per character
-  (turnaround views, 8 poses, 8 expression close-ups) as a PNG for thumbnails,
-  posts, and your site. Click any cell to download that single render as a
-  transparent 1024×1024 PNG.
+  (front/side/back turnaround, 8 poses, 8 expression close-ups) as a PNG for
+  thumbnails, posts, and your site — in the same format as the original concept
+  sheet. Click any cell to download that single render as a transparent
+  1024×1024 PNG.
 
 ## Run it
 
@@ -62,11 +65,10 @@ python3 -m http.server 8080   # or any static server
 
 ```
 index.html            page shell + tabs (Stage / Characters / Sheet / Settings)
-css/style.css         all styling
-js/three.module.min.js  vendored Three.js r160
-js/penguin.js         procedural penguin builder, expressions, poses, animation FSM
+css/style.css         all styling incl. the paper stage
+js/sketch-penguin.js  pencil-style SVG puppets: drawing, rig, expressions, poses, FSM
 js/brain.js           Claude API client, system-prompt builder, scripted fallback
-js/sheet.js           character-sheet renderer/exporter
-js/app.js             scene, chat orchestration, editors, UI wiring
+js/sheet.js           character-sheet renderer/exporter (SVG → PNG)
+js/app.js             stage, chat orchestration, editors, UI wiring
 data/personas.js      default character minds + localStorage persistence
 ```

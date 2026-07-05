@@ -1,6 +1,5 @@
-// app.js — stage, chat orchestration, editors, sheet UI.
-import * as THREE from 'three';
-import { Penguin, PENGUIN_CONFIGS, EMOTES, buildEnvironment } from './penguin.js';
+// app.js — paper stage, chat orchestration, editors, sheet UI.
+import { SketchPenguin, PENGUIN_CONFIGS, EMOTES } from './sketch-penguin.js';
 import { buildSystemPrompt, callClaude, testKey, parseEmote, scriptedReply, scriptedBanter } from './brain.js';
 import { loadCharacters, saveCharacters, resetCharacters, loadSettings, saveSettings, DEFAULT_CHARACTERS } from '../data/personas.js';
 import { generateSheet, renderSingle, downloadCanvas } from './sheet.js';
@@ -11,107 +10,56 @@ const $$ = (sel) => [...document.querySelectorAll(sel)];
 let characters = loadCharacters();
 let settings = loadSettings();
 
-// ============================================================ 3D stage
-const canvas = $('#stage');
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-
-const scene = new THREE.Scene();
-buildEnvironment(scene);
-
-const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 100);
-const camTarget = new THREE.Vector3(0, 1.5, 0);
-const orbit = { azimuth: 0, polar: 1.22, radius: 8.4 };
-function applyCamera() {
-  const { azimuth, polar, radius } = orbit;
-  camera.position.set(
-    camTarget.x + radius * Math.sin(polar) * Math.sin(azimuth),
-    camTarget.y + radius * Math.cos(polar),
-    camTarget.z + radius * Math.sin(polar) * Math.cos(azimuth)
-  );
-  camera.lookAt(camTarget);
-}
-applyCamera();
-
-// minimal orbit controls
-let dragging = false, lastX = 0, lastY = 0;
-canvas.addEventListener('pointerdown', (e) => { dragging = true; lastX = e.clientX; lastY = e.clientY; canvas.setPointerCapture(e.pointerId); });
-canvas.addEventListener('pointermove', (e) => {
-  if (!dragging) return;
-  orbit.azimuth -= (e.clientX - lastX) * 0.005;
-  orbit.polar = THREE.MathUtils.clamp(orbit.polar - (e.clientY - lastY) * 0.004, 0.85, 1.5);
-  orbit.azimuth = THREE.MathUtils.clamp(orbit.azimuth, -1.3, 1.3);
-  lastX = e.clientX; lastY = e.clientY;
-  applyCamera();
-});
-canvas.addEventListener('pointerup', () => { dragging = false; });
-canvas.addEventListener('wheel', (e) => {
-  e.preventDefault();
-  orbit.radius = THREE.MathUtils.clamp(orbit.radius + e.deltaY * 0.01, 4.5, 16);
-  applyCamera();
-}, { passive: false });
-
-// penguins
+// ============================================================ paper stage
+const stageWrap = $('#stage-wrap');
 const penguins = {
-  npc: new Penguin(PENGUIN_CONFIGS.npc),
-  cap: new Penguin(PENGUIN_CONFIGS.cap),
+  npc: new SketchPenguin(PENGUIN_CONFIGS.npc, $('#mount-npc')),
+  cap: new SketchPenguin(PENGUIN_CONFIGS.cap, $('#mount-cap')),
 };
-scene.add(penguins.npc.root, penguins.cap.root);
 // entrance: waddle in from the wings
-penguins.npc.root.position.set(-7, 0, -1);
-penguins.cap.root.position.set(7, 0, -1);
-penguins.npc.walkTo(-1.7, 0, 1.5);
-penguins.cap.walkTo(1.7, 0, 2.0);
+penguins.npc.x = -18;
+penguins.cap.x = 118;
+penguins.npc.walkTo(30);
+penguins.cap.walkTo(70);
 let greeted = false;
 
-function resize() {
-  const w = canvas.clientWidth, h = canvas.clientHeight;
-  if (canvas.width !== Math.floor(w * renderer.getPixelRatio()) || canvas.height !== Math.floor(h * renderer.getPixelRatio())) {
-    renderer.setSize(w, h, false);
-    camera.aspect = w / h;
-    camera.updateProjectionMatrix();
-  }
-}
-new ResizeObserver(resize).observe(canvas);
+const mounts = { npc: $('#mount-npc'), cap: $('#mount-cap') };
+const shadows = { npc: $('#shadow-npc'), cap: $('#shadow-cap') };
 
 // speech bubbles pinned above heads
 const bubbles = { npc: $('#bubble-npc'), cap: $('#bubble-cap') };
-const _v = new THREE.Vector3();
 function placeBubbles() {
+  const wrapRect = stageWrap.getBoundingClientRect();
   for (const id of ['npc', 'cap']) {
     const el = bubbles[id];
     if (el.classList.contains('hidden')) continue;
-    penguins[id].head.getWorldPosition(_v);
-    _v.y += 1.25;
-    _v.project(camera);
-    const r = canvas.getBoundingClientRect();
-    el.style.left = `${r.left + (_v.x * 0.5 + 0.5) * r.width}px`;
-    el.style.top = `${(_v.y * -0.5 + 0.5) * r.height + r.top - 6}px`;
+    const r = mounts[id].getBoundingClientRect();
+    el.style.left = `${r.left + r.width / 2 - wrapRect.left}px`;
+    el.style.top = `${r.top - wrapRect.top + r.height * 0.02}px`;
   }
 }
 
-const clock = new THREE.Clock();
-function loop() {
+let last = performance.now();
+function loop(now) {
   requestAnimationFrame(loop);
-  resize();
-  const dt = Math.min(clock.getDelta(), 0.05);
-  const t = clock.elapsedTime;
-  penguins.npc.update(dt, t);
-  penguins.cap.update(dt, t);
+  const dt = Math.min((now - last) / 1000, 0.05);
+  last = now;
+  const t = now / 1000;
+  for (const id of ['npc', 'cap']) {
+    const p = penguins[id];
+    p.update(dt, t);
+    mounts[id].style.left = `${p.x}%`;
+    shadows[id].style.left = `${p.x}%`;
+  }
   if (!greeted && !penguins.cap.walk && !penguins.npc.walk) {
     greeted = true;
-    penguins.cap.faceToward(camera.position.x, camera.position.z);
-    penguins.npc.faceToward(camera.position.x, camera.position.z);
     penguins.cap.play('wave', 2.4);
     speak('cap', "Hey! Welcome to the Rookery. Ask us anything — or just say hi.", 5200);
     setTimeout(() => { penguins.npc.play('shrug', 2); speak('npc', "I was told there would be fish.", 4200); }, 2600);
   }
   placeBubbles();
-  renderer.render(scene, camera);
 }
-loop();
+requestAnimationFrame(loop);
 
 // ============================================================ speaking
 const bubbleTimers = {};
@@ -236,7 +184,6 @@ $('#chat-form').addEventListener('submit', async (e) => {
       await charRespond('npc', `${text}\n\n(${characters.cap.name} just replied: "${capText}" — react to the user and to that.)`);
       typing2.remove();
     } else {
-      penguins[who].faceToward(camera.position.x, camera.position.z);
       const typing = addMsg(`${who} typing`, '…');
       await charRespond(who, text);
       typing.remove();
@@ -260,8 +207,6 @@ $('#btn-banter').addEventListener('click', async () => {
   busy = true;
   $('#btn-banter').disabled = true;
   addMsg('sys', '— NPC & CAP start riffing —');
-  penguins.cap.faceToward(penguins.npc.root.position.x, penguins.npc.root.position.z);
-  penguins.npc.faceToward(penguins.cap.root.position.x, penguins.cap.root.position.z);
 
   try {
     if (hasKey()) {
@@ -314,10 +259,8 @@ $$('.anim-btn').forEach((btn) => btn.addEventListener('click', () => {
   const targets = who === 'both' ? ['cap', 'npc'] : [who];
   for (const id of targets) {
     if (anim === 'waddle') {
-      const p = penguins[id];
-      const x = (Math.random() * 6 - 3);
-      const z = Math.random() * 3 - 0.5;
-      p.walkTo(x, z);
+      const base = id === 'npc' ? 30 : 70;
+      penguins[id].walkTo(base + (Math.random() * 24 - 12));
     } else {
       penguins[id].play(anim, 2.6);
       const e = EMOTES[anim];
@@ -432,29 +375,35 @@ $$('#sheet-char-pick .seg-btn').forEach((btn) => btn.addEventListener('click', (
   sheetChar = btn.dataset.char;
 }));
 
-$('#btn-gen-sheet').addEventListener('click', () => {
-  const { canvas: sheet, cellMap } = generateSheet(sheetChar, characters[sheetChar]);
-  sheetCellMap = cellMap;
-  const preview = $('#sheet-preview');
-  preview.width = sheet.width;
-  preview.height = sheet.height;
-  preview.getContext('2d').drawImage(sheet, 0, 0);
-  preview.classList.add('ready');
-  $('#btn-dl-sheet').disabled = false;
+$('#btn-gen-sheet').addEventListener('click', async () => {
+  const btn = $('#btn-gen-sheet');
+  btn.disabled = true;
+  try {
+    const { canvas: sheet, cellMap } = await generateSheet(sheetChar, characters[sheetChar]);
+    sheetCellMap = cellMap;
+    const preview = $('#sheet-preview');
+    preview.width = sheet.width;
+    preview.height = sheet.height;
+    preview.getContext('2d').drawImage(sheet, 0, 0);
+    preview.classList.add('ready');
+    $('#btn-dl-sheet').disabled = false;
+  } finally {
+    btn.disabled = false;
+  }
 });
 
 $('#btn-dl-sheet').addEventListener('click', () => {
   downloadCanvas($('#sheet-preview'), `${characters[sheetChar].name.toLowerCase()}-character-sheet.png`);
 });
 
-$('#sheet-preview').addEventListener('click', (e) => {
+$('#sheet-preview').addEventListener('click', async (e) => {
   const preview = $('#sheet-preview');
   const r = preview.getBoundingClientRect();
   const x = (e.clientX - r.left) * (preview.width / r.width);
   const y = (e.clientY - r.top) * (preview.height / r.height);
   const cell = sheetCellMap.find((c) => x >= c.x && x <= c.x + c.w && y >= c.y && y <= c.y + c.h);
   if (!cell) return;
-  const single = renderSingle(cell.charId, cell.opts, 1024);
+  const single = await renderSingle(cell.charId, cell.opts, 1024);
   downloadCanvas(single, `${characters[cell.charId].name.toLowerCase()}-${cell.label.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.png`);
 });
 

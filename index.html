@@ -6,9 +6,6 @@
 <title>NPC &amp; CAP — The Rookery</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐧</text></svg>">
 <link rel="stylesheet" href="css/style.css">
-<script type="importmap">
-  { "imports": { "three": "./js/three.module.min.js" } }
-</script>
 </head>
 <body>
 <header id="topbar">
@@ -30,10 +27,16 @@
 <!-- ============ STAGE ============ -->
 <main id="view-stage" class="view active">
   <div id="stage-wrap">
-    <canvas id="stage"></canvas>
+    <div id="paper">
+      <div id="ground-line"></div>
+      <div id="shadow-npc" class="pg-shadow"></div>
+      <div id="shadow-cap" class="pg-shadow"></div>
+      <div id="mount-npc" class="penguin-mount"></div>
+      <div id="mount-cap" class="penguin-mount"></div>
+    </div>
     <div id="bubble-npc" class="bubble npc hidden"></div>
     <div id="bubble-cap" class="bubble cap hidden"></div>
-    <div id="stage-hint">drag to orbit · scroll to zoom</div>
+    <div id="stage-hint">a living sketch — say hi</div>
     <div id="anim-bar">
       <span class="anim-label">Direct them:</span>
       <button class="anim-btn" data-anim="wave">👋 Wave</button>

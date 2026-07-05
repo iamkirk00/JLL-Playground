@@ -50,13 +50,36 @@ body {
   display: block; padding: 24px; overflow-y: auto;
 }
 
-/* ---------- Stage ---------- */
-#stage-wrap { position: relative; flex: 1; min-width: 0; }
-#stage { width: 100%; height: 100%; display: block; touch-action: none; }
+/* ---------- Stage (sketchbook paper) ---------- */
+#stage-wrap { position: relative; flex: 1; min-width: 0; overflow: hidden; }
+#paper {
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse 120% 90% at 50% 0%, #f7f2e2 0%, #f2ecd9 55%, #eae2ca 100%);
+}
+#paper::after { /* paper grain */
+  content: ""; position: absolute; inset: 0; pointer-events: none; opacity: 0.5;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0.28 0 0 0 0 0.25 0 0 0 0 0.22 0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+#ground-line {
+  position: absolute; left: 4%; right: 4%; bottom: 11.5%; height: 3px;
+  background: #46403a; opacity: 0.35; border-radius: 3px;
+  transform: rotate(-0.3deg);
+}
+.penguin-mount {
+  position: absolute; bottom: 7%; height: 64%; aspect-ratio: 400 / 440;
+  transform: translateX(-50%); pointer-events: none;
+}
+.penguin-mount svg { width: 100%; height: 100%; display: block; }
+.pg-shadow {
+  position: absolute; bottom: 8.2%; width: 22%; height: 4%;
+  transform: translateX(-50%); border-radius: 50%;
+  background: radial-gradient(ellipse at center, #46403a44 0%, transparent 70%);
+}
 #stage-hint {
   position: absolute; top: 10px; left: 12px; font-size: 11px;
-  color: #ffffffcc; background: #00000022; padding: 3px 9px; border-radius: 999px;
-  pointer-events: none;
+  color: #7a7264; background: #46403a14; padding: 3px 9px; border-radius: 999px;
+  pointer-events: none; font-style: italic;
 }
 #anim-bar {
   position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%);
