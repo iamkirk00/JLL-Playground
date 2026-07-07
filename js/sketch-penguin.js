@@ -156,8 +156,10 @@ function npcFront(c) {
 // over a generous white face, vertical-oval eyes with big pupils, thin arched
 // brows, and a large open smiling beak; expressive arm-like wings.
 function capFront(c) {
-  const body = `M200,84 C152,86 120,120 116,168 C113,204 128,232 150,248 C124,270 112,304 112,340 C112,384 146,412 200,414 C254,412 288,384 288,340 C288,304 276,270 250,248 C272,232 287,204 284,168 C280,120 248,86 200,84 Z`;
-  const face = `M200,114 C160,110 136,134 132,168 C128,202 144,230 168,244 C146,262 134,296 134,336 C134,380 160,404 200,406 C240,404 266,380 266,336 C266,296 254,262 232,244 C256,230 272,202 268,168 C264,134 240,110 200,114 Z`;
+  // Egg-shaped head: narrow crown, cheeks fullest down by the beak, soft
+  // transition into the body (per the model sheet — not a ball on a body).
+  const body = `M200,82 C162,84 138,106 130,146 C124,182 130,218 152,242 C128,264 114,300 114,340 C114,384 148,412 200,414 C252,412 286,384 286,340 C286,300 272,264 248,242 C270,218 276,182 270,146 C262,106 238,84 200,82 Z`;
+  const face = `M200,112 C168,108 146,128 142,162 C139,196 152,226 174,240 C152,260 140,296 140,336 C140,380 164,404 200,406 C236,404 260,380 260,336 C260,296 248,260 226,240 C248,226 261,196 258,162 C254,128 232,108 200,112 Z`;
   return `
   <g class="root">
     <g class="body">
@@ -180,8 +182,8 @@ function capFront(c) {
           <g class="pupilR"><circle cx="224" cy="158" r="12.5" fill="#322d28"/><circle cx="229" cy="152" r="3.5" fill="#fdfaf2" opacity="0.9"/></g>
           <g clip-path="url(#eyeclipL-${c.id})"><g class="lidL"><rect x="126" y="111" width="92" height="82" fill="${c.belly}"/><line x1="126" y1="193" x2="218" y2="193" stroke="${c.line}" stroke-width="3.2" stroke-opacity="0.85"/></g></g>
           <g clip-path="url(#eyeclipR-${c.id})"><g class="lidR"><rect x="182" y="111" width="92" height="82" fill="${c.belly}"/><line x1="182" y1="193" x2="274" y2="193" stroke="${c.line}" stroke-width="3.2" stroke-opacity="0.85"/></g></g>
-          <g class="browL"><path d="M146,112 Q172,96 198,108" ${stroke(c, c.browWidth)}/></g>
-          <g class="browR"><path d="M202,108 Q228,96 254,112" ${stroke(c, c.browWidth)}/></g>
+          <g class="browL"><path d="M148,122 Q172,106 196,118" ${stroke(c, c.browWidth)}/></g>
+          <g class="browR"><path d="M204,118 Q228,106 252,122" ${stroke(c, c.browWidth)}/></g>
         </g>
         <g class="beak">
           <path class="mouthShape" d="M148,204 C174,244 226,244 252,204 C246,264 154,264 148,204 Z" fill="#4a4237" stroke="none"/>
@@ -292,8 +294,8 @@ export class SketchPenguin {
       head: '200px 250px',
       flipperL: npc ? '112px 236px' : '120px 262px',
       flipperR: npc ? '288px 236px' : '280px 262px',
-      browL: npc ? '163px 134px' : '172px 106px',
-      browR: npc ? '237px 134px' : '228px 106px',
+      browL: npc ? '163px 134px' : '172px 116px',
+      browR: npc ? '237px 134px' : '228px 116px',
       root: '200px 414px',
     };
     for (const k of ['body', 'head', 'flipperL', 'flipperR', 'browL', 'browR', 'root']) {
