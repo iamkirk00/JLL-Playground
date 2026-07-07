@@ -6,27 +6,31 @@
 export const PENGUIN_CONFIGS = {
   npc: {
     id: 'npc',
-    body: '#8b8478',
-    belly: '#f5efdf',
-    beak: '#b7ad98',
-    foot: '#cfc6ae',
-    line: '#46403a',
-    facePatch: false,
-    tuft: 'fringe',
+    body: '#cfc6ae',          // light flank tone; the dark lives in the hood/wings
+    dark: '#857d6e',
+    belly: '#f2ecda',
+    beak: '#c9ba9b',
+    foot: '#d9cfb4',
+    line: '#55503f',
     defaultExpression: 'unimpressed',
-    browWidth: 15,
+    browWidth: 13,
+    eye: { lx: 163, rx: 237, cy: 152, rW: 36, rH: 27 },
+    jawTravel: 10,
+    lidSkew: 6,
   },
   cap: {
     id: 'cap',
-    body: '#a49c8f',
-    belly: '#f7f1e2',
-    beak: '#c4b89e',
-    foot: '#d6cdb5',
-    line: '#46403a',
-    facePatch: true,
-    tuft: 'spiky',
+    body: '#8d8576',          // dark cap/back/wings
+    dark: '#8d8576',
+    belly: '#f6f0df',
+    beak: '#d6c7a4',
+    foot: '#d9cfb4',
+    line: '#55503f',
     defaultExpression: 'bright',
-    browWidth: 5,
+    browWidth: 4.5,
+    eye: { lx: 172, rx: 228, cy: 152, rW: 23, rH: 31 },
+    jawTravel: 16,
+    lidSkew: 0,
   },
 };
 
@@ -87,12 +91,13 @@ function defs(c) {
       <feTurbulence type="fractalNoise" baseFrequency="0.013 0.019" numOctaves="2" seed="${s}" result="n"/>
       <feDisplacementMap in="SourceGraphic" in2="n" scale="4.5"/>
     </filter>`).join('');
+  const e = c.eye;
   return `<defs>${filters}
     <pattern id="hatch-${c.id}" width="7" height="7" patternTransform="rotate(38)" patternUnits="userSpaceOnUse">
       <line x1="0" y1="0" x2="0" y2="7" stroke="${c.line}" stroke-width="1.1" opacity="0.45"/>
     </pattern>
-    <clipPath id="eyeclipL-${c.id}"><ellipse cx="${c.id === 'npc' ? 163 : 166}" cy="${c.id === 'npc' ? 150 : 146}" rx="${c.id === 'npc' ? 42 : 46}" ry="${c.id === 'npc' ? 48 : 47}"/></clipPath>
-    <clipPath id="eyeclipR-${c.id}"><ellipse cx="${c.id === 'npc' ? 237 : 240}" cy="${c.id === 'npc' ? 150 : 146}" rx="${c.id === 'npc' ? 42 : 46}" ry="${c.id === 'npc' ? 48 : 47}"/></clipPath>
+    <clipPath id="eyeclipL-${c.id}"><ellipse cx="${e.lx}" cy="${e.cy}" rx="${e.rW}" ry="${e.rH}"/></clipPath>
+    <clipPath id="eyeclipR-${c.id}"><ellipse cx="${e.rx}" cy="${e.cy}" rx="${e.rW}" ry="${e.rH}"/></clipPath>
   </defs>`;
 }
 
@@ -100,96 +105,107 @@ const stroke = (c, w = 3.4) => `fill="none" stroke="${c.line}" stroke-width="${w
 const filled = (c, fill, w = 3.4) => `fill="${fill}" stroke="${c.line}" stroke-width="${w}" stroke-linejoin="round" stroke-opacity="0.9"`;
 
 // ---------- NPC front ----------
+// Traced from the model sheet: tall slim egg, dark "hood" over crown/shoulders,
+// almond eyes under a heavy V-brow, pointed downturned beak, crest swept right,
+// dark pointed wings, splayed three-toed feet.
 function npcFront(c) {
-  const body = `M200,66 C148,68 120,112 116,168 C113,214 76,246 68,308 C61,372 124,406 200,406 C276,406 339,372 332,308 C324,246 287,214 284,168 C280,112 252,68 200,66 Z`;
-  return `
-  <g class="root">
-    <g class="body">
-      <path d="${body}" ${filled(c, c.body)}/>
-      <path d="${body}" fill="url(#hatch-${c.id})" stroke="none" opacity="0.35"/>
-      <g class="flipperL"><path d="M84,216 C58,246 46,296 56,336 C62,352 84,346 94,320 C104,288 102,250 96,222 Z" ${filled(c, c.body)}/></g>
-      <g class="flipperR"><path d="M316,216 C342,246 354,296 344,336 C338,352 316,346 306,320 C296,288 298,250 304,222 Z" ${filled(c, c.body)}/></g>
-      <ellipse class="bellyShape" cx="200" cy="302" rx="104" ry="92" ${filled(c, c.belly)}/>
-      <g class="head">
-        <g class="tuft">
-          <path d="M162,64 c12,-18 32,-22 50,-12" ${stroke(c, 4)}/>
-          <path d="M178,56 c16,-16 38,-14 50,0" ${stroke(c, 4)}/>
-          <path d="M196,50 c16,-10 34,-4 42,10" ${stroke(c, 4)}/>
-          <path d="M214,48 c14,-6 28,2 34,14" ${stroke(c, 4)}/>
-        </g>
-        <g class="eyes">
-          <ellipse cx="163" cy="150" rx="42" ry="48" ${filled(c, '#fbf8ef')}/>
-          <ellipse cx="237" cy="150" rx="42" ry="48" ${filled(c, '#fbf8ef')}/>
-          <g class="pupilL"><circle cx="170" cy="160" r="10.5" fill="#35302b"/><circle cx="174" cy="156" r="3" fill="#fbf8ef" opacity="0.85"/></g>
-          <g class="pupilR"><circle cx="230" cy="160" r="10.5" fill="#35302b"/><circle cx="234" cy="156" r="3" fill="#fbf8ef" opacity="0.85"/></g>
-          <g clip-path="url(#eyeclipL-${c.id})"><g class="lidL"><rect x="111" y="88" width="104" height="124" fill="${c.body}"/><line x1="111" y1="212" x2="215" y2="212" stroke="${c.line}" stroke-width="3.5" stroke-opacity="0.85"/></g></g>
-          <g clip-path="url(#eyeclipR-${c.id})"><g class="lidR"><rect x="185" y="88" width="104" height="124" fill="${c.body}"/><line x1="185" y1="212" x2="289" y2="212" stroke="${c.line}" stroke-width="3.5" stroke-opacity="0.85"/></g></g>
-          <g class="browL"><path d="M126,102 L202,112" ${stroke(c, c.browWidth)}/></g>
-          <g class="browR"><path d="M198,112 L274,102" ${stroke(c, c.browWidth)}/></g>
-        </g>
-        <g class="beak">
-          <path class="mouthShape" d="M150,206 C175,224 225,224 250,206 C235,238 165,238 150,206 Z" fill="#3d3833" stroke="none"/>
-          <g class="jaw"><path d="M148,214 C172,230 228,230 252,214 C230,240 170,240 148,214 Z" ${filled(c, c.beak)}/></g>
-          <path d="M112,198 C152,182 248,182 288,198 C268,214 236,222 200,222 C164,222 132,214 112,198 Z" ${filled(c, c.beak)}/>
-          <path d="M112,198 q-7,5 -9,14 M288,198 q7,5 9,14" ${stroke(c, 3)}/>
-        </g>
-      </g>
-    </g>
-    <g class="footL"><path d="M116,406 a15,13 0 0 1 27,-7 a13,12 0 0 1 23,0 a15,13 0 0 1 25,9 z" ${filled(c, c.foot, 3)}/></g>
-    <g class="footR"><path d="M209,408 a15,13 0 0 1 25,-9 a13,12 0 0 1 23,0 a15,13 0 0 1 27,7 z" ${filled(c, c.foot, 3)}/></g>
-  </g>`;
-}
-
-// ---------- CAP front ----------
-function capFront(c) {
-  const body = `M204,60 C156,62 130,104 128,158 C126,204 92,240 86,300 C80,364 138,402 206,402 C274,402 330,364 324,300 C318,240 286,204 284,158 C282,104 252,62 204,60 Z`;
+  const body = `M200,78 C162,80 138,102 132,138 C127,168 118,196 106,232 C94,268 88,306 90,340 C92,382 128,412 200,414 C272,412 308,382 310,340 C312,306 306,268 294,232 C282,196 273,168 268,138 C262,102 238,80 200,78 Z`;
+  const hood = `M106,232 C118,196 127,168 132,138 C138,102 162,80 200,78 C238,80 262,102 268,138 C273,168 282,196 294,232 C268,214 250,196 246,170 C230,184 216,191 200,193 C184,191 170,184 154,170 C150,196 132,214 106,232 Z`;
   return `
   <g class="root">
     <g class="body">
       <path d="${body}" ${filled(c, c.body)}/>
       <path d="${body}" fill="url(#hatch-${c.id})" stroke="none" opacity="0.3"/>
-      <g class="flipperL"><path d="M100,212 C76,240 66,290 74,328 C80,344 100,338 110,314 C118,284 116,246 110,216 Z" ${filled(c, c.body)}/></g>
-      <g class="flipperR"><path d="M308,212 C332,240 342,290 334,328 C328,344 308,338 298,314 C290,284 292,246 298,216 Z" ${filled(c, c.body)}/></g>
-      <ellipse class="bellyShape" cx="205" cy="298" rx="97" ry="100" ${filled(c, c.belly)}/>
+      <ellipse class="bellyShape" cx="200" cy="308" rx="74" ry="96" ${filled(c, c.belly)}/>
+      <path d="${hood}" fill="${c.dark}" stroke="${c.line}" stroke-width="3" stroke-linejoin="round" stroke-opacity="0.75"/>
+      <path d="${hood}" fill="url(#hatch-${c.id})" stroke="none" opacity="0.4"/>
+      <g class="flipperL"><path d="M106,230 C90,264 82,304 86,344 C88,366 102,372 112,356 C124,336 128,288 122,246 Z" ${filled(c, c.dark)}/></g>
+      <g class="flipperR"><path d="M294,230 C310,264 318,304 314,344 C312,366 298,372 288,356 C276,336 272,288 278,246 Z" ${filled(c, c.dark)}/></g>
       <g class="head">
-        <ellipse class="faceShape" cx="204" cy="150" rx="80" ry="64" ${filled(c, c.belly)}/>
         <g class="tuft">
-          <path d="M182,62 q-9,-26 -20,-35" ${stroke(c, 4)}/>
-          <path d="M196,58 q-4,-28 -11,-38" ${stroke(c, 4)}/>
-          <path d="M208,56 q3,-28 10,-37" ${stroke(c, 4)}/>
-          <path d="M222,60 q11,-24 22,-31" ${stroke(c, 4)}/>
+          <path d="M160,100 C164,80 176,66 192,60" ${stroke(c, 4.5)}/>
+          <path d="M170,92 C180,66 200,54 226,56" ${stroke(c, 5)}/>
+          <path d="M180,86 C192,64 212,56 232,62" ${stroke(c, 4.5)}/>
+          <path d="M192,82 C204,64 220,60 236,68" ${stroke(c, 4)}/>
         </g>
         <g class="eyes">
-          <circle cx="166" cy="146" r="46" ${filled(c, '#fdfaf2')}/>
-          <circle cx="240" cy="146" r="46" ${filled(c, '#fdfaf2')}/>
-          <g class="pupilL"><circle cx="173" cy="150" r="16" fill="#322d28"/><circle cx="179" cy="144" r="4.5" fill="#fdfaf2" opacity="0.9"/></g>
-          <g class="pupilR"><circle cx="233" cy="150" r="16" fill="#322d28"/><circle cx="239" cy="144" r="4.5" fill="#fdfaf2" opacity="0.9"/></g>
-          <g clip-path="url(#eyeclipL-${c.id})"><g class="lidL"><rect x="114" y="86" width="104" height="120" fill="${c.belly}"/><line x1="114" y1="206" x2="218" y2="206" stroke="${c.line}" stroke-width="3.5" stroke-opacity="0.85"/></g></g>
-          <g clip-path="url(#eyeclipR-${c.id})"><g class="lidR"><rect x="188" y="86" width="104" height="120" fill="${c.belly}"/><line x1="188" y1="206" x2="292" y2="206" stroke="${c.line}" stroke-width="3.5" stroke-opacity="0.85"/></g></g>
-          <g class="browL"><path d="M130,90 Q166,72 200,86" ${stroke(c, c.browWidth)}/></g>
-          <g class="browR"><path d="M208,86 Q242,72 278,90" ${stroke(c, c.browWidth)}/></g>
+          <ellipse cx="163" cy="152" rx="36" ry="27" ${filled(c, '#fbf8ef', 3.2)}/>
+          <ellipse cx="237" cy="152" rx="36" ry="27" ${filled(c, '#fbf8ef', 3.2)}/>
+          <g class="pupilL"><circle cx="180" cy="158" r="7.5" fill="#35302b"/></g>
+          <g class="pupilR"><circle cx="220" cy="158" r="7.5" fill="#35302b"/></g>
+          <g clip-path="url(#eyeclipL-${c.id})"><g class="lidL"><rect x="117" y="115" width="92" height="74" fill="${c.dark}"/><line x1="117" y1="189" x2="209" y2="189" stroke="${c.line}" stroke-width="3.2" stroke-opacity="0.85"/></g></g>
+          <g clip-path="url(#eyeclipR-${c.id})"><g class="lidR"><rect x="191" y="115" width="92" height="74" fill="${c.dark}"/><line x1="191" y1="189" x2="283" y2="189" stroke="${c.line}" stroke-width="3.2" stroke-opacity="0.85"/></g></g>
+          <g class="browL"><path d="M122,126 L204,142" ${stroke(c, c.browWidth)}/></g>
+          <g class="browR"><path d="M196,142 L278,126" ${stroke(c, c.browWidth)}/></g>
         </g>
         <g class="beak">
-          <path class="mouthShape" d="M160,202 C186,230 222,230 248,202 C236,250 172,250 160,202 Z" fill="#463c36" stroke="none"/>
-          <g class="jaw"><path d="M168,218 C194,238 216,238 240,218 C232,250 176,250 168,218 Z" ${filled(c, c.beak)}/></g>
-          <path d="M156,194 C176,180 232,180 252,194 C244,212 224,220 204,220 C184,220 164,212 156,194 Z" ${filled(c, c.beak)}/>
+          <path class="mouthShape" d="M172,206 C190,222 210,222 228,206 C216,238 184,238 172,206 Z" fill="#3d3833" stroke="none"/>
+          <g class="jaw"><path d="M180,214 C190,224 210,224 220,214 C212,230 188,230 180,214 Z" ${filled(c, c.beak, 3)}/></g>
+          <path d="M162,182 C176,172 224,172 238,182 C232,200 214,218 200,222 C186,218 168,200 162,182 Z" ${filled(c, c.beak)}/>
+          <path d="M200,184 L200,216" ${stroke(c, 2.4)}/>
         </g>
       </g>
     </g>
-    <g class="footL"><path d="M122,404 a15,13 0 0 1 27,-7 a13,12 0 0 1 23,0 a15,13 0 0 1 25,9 z" ${filled(c, c.foot, 3)}/></g>
-    <g class="footR"><path d="M215,406 a15,13 0 0 1 25,-9 a13,12 0 0 1 23,0 a15,13 0 0 1 27,7 z" ${filled(c, c.foot, 3)}/></g>
+    <g class="footL"><path d="M118,424 a15,12 0 0 1 26,-8 a13,11 0 0 1 22,0 a15,12 0 0 1 26,8 z" ${filled(c, c.foot, 3)}/></g>
+    <g class="footR"><path d="M208,424 a15,12 0 0 1 26,-8 a13,11 0 0 1 22,0 a15,12 0 0 1 26,8 z" ${filled(c, c.foot, 3)}/></g>
+  </g>`;
+}
+
+// ---------- CAP front ----------
+// Traced from the model sheet: chibi proportions (big head, small body), dark cap
+// over a generous white face, vertical-oval eyes with big pupils, thin arched
+// brows, and a large open smiling beak; expressive arm-like wings.
+function capFront(c) {
+  const body = `M200,84 C152,86 120,120 116,168 C113,204 128,232 150,248 C124,270 112,304 112,340 C112,384 146,412 200,414 C254,412 288,384 288,340 C288,304 276,270 250,248 C272,232 287,204 284,168 C280,120 248,86 200,84 Z`;
+  const face = `M200,114 C160,110 136,134 132,168 C128,202 144,230 168,244 C146,262 134,296 134,336 C134,380 160,404 200,406 C240,404 266,380 266,336 C266,296 254,262 232,244 C256,230 272,202 268,168 C264,134 240,110 200,114 Z`;
+  return `
+  <g class="root">
+    <g class="body">
+      <path d="${body}" ${filled(c, c.body)}/>
+      <path d="${body}" fill="url(#hatch-${c.id})" stroke="none" opacity="0.35"/>
+      <g class="flipperL"><path d="M118,258 C90,278 72,308 68,336 C66,354 82,358 96,346 C114,330 124,296 126,266 Z" ${filled(c, c.body)}/></g>
+      <g class="flipperR"><path d="M282,258 C310,278 328,308 332,336 C334,354 318,358 304,346 C286,330 276,296 274,266 Z" ${filled(c, c.body)}/></g>
+      <g class="head">
+        <path class="faceShape" d="${face}" ${filled(c, c.belly)}/>
+        <g class="tuft">
+          <path d="M180,86 q-8,-26 -18,-34" ${stroke(c, 4)}/>
+          <path d="M192,82 q-3,-28 -10,-38" ${stroke(c, 4)}/>
+          <path d="M204,80 q2,-28 9,-36" ${stroke(c, 4)}/>
+          <path d="M216,84 q10,-24 20,-30" ${stroke(c, 4)}/>
+        </g>
+        <g class="eyes">
+          <ellipse cx="172" cy="152" rx="23" ry="31" ${filled(c, '#fdfaf2', 3.2)}/>
+          <ellipse cx="228" cy="152" rx="23" ry="31" ${filled(c, '#fdfaf2', 3.2)}/>
+          <g class="pupilL"><circle cx="176" cy="158" r="12.5" fill="#322d28"/><circle cx="181" cy="152" r="3.5" fill="#fdfaf2" opacity="0.9"/></g>
+          <g class="pupilR"><circle cx="224" cy="158" r="12.5" fill="#322d28"/><circle cx="229" cy="152" r="3.5" fill="#fdfaf2" opacity="0.9"/></g>
+          <g clip-path="url(#eyeclipL-${c.id})"><g class="lidL"><rect x="126" y="111" width="92" height="82" fill="${c.belly}"/><line x1="126" y1="193" x2="218" y2="193" stroke="${c.line}" stroke-width="3.2" stroke-opacity="0.85"/></g></g>
+          <g clip-path="url(#eyeclipR-${c.id})"><g class="lidR"><rect x="182" y="111" width="92" height="82" fill="${c.belly}"/><line x1="182" y1="193" x2="274" y2="193" stroke="${c.line}" stroke-width="3.2" stroke-opacity="0.85"/></g></g>
+          <g class="browL"><path d="M146,112 Q172,96 198,108" ${stroke(c, c.browWidth)}/></g>
+          <g class="browR"><path d="M202,108 Q228,96 254,112" ${stroke(c, c.browWidth)}/></g>
+        </g>
+        <g class="beak">
+          <path class="mouthShape" d="M148,204 C174,244 226,244 252,204 C246,264 154,264 148,204 Z" fill="#4a4237" stroke="none"/>
+          <g class="jaw"><path d="M162,240 C186,256 214,256 238,240 C226,268 174,268 162,240 Z" ${filled(c, c.beak, 3)}/></g>
+          <path d="M148,190 C164,178 236,178 252,190 C246,208 224,222 200,224 C176,222 154,208 148,190 Z" ${filled(c, c.beak)}/>
+          <path d="M150,206 q-9,-3 -12,-11 M250,206 q9,-3 12,-11" ${stroke(c, 3)}/>
+        </g>
+      </g>
+    </g>
+    <g class="footL"><path d="M124,424 a16,13 0 0 1 28,-8 a14,12 0 0 1 24,0 a16,13 0 0 1 28,8 z" ${filled(c, c.foot, 3)}/></g>
+    <g class="footR"><path d="M196,424 a16,13 0 0 1 28,-8 a14,12 0 0 1 24,0 a16,13 0 0 1 28,8 z" ${filled(c, c.foot, 3)}/></g>
   </g>`;
 }
 
 // ---------- static side / back views (for the character sheet) ----------
 function sideView(c) {
   const npc = c.id === 'npc';
+  const dark = npc ? c.dark : c.body;
   const brow = npc
-    ? `<path d="M236,108 L292,120" ${stroke(c, 13)}/>`
+    ? `<path d="M236,110 L294,122" ${stroke(c, 12)}/>`
     : `<path d="M238,96 Q262,84 286,94" ${stroke(c, 5)}/>`;
   const beak = npc
-    ? `<path d="M290,178 C330,180 360,190 372,200 C360,212 330,216 292,214 Z" ${filled(c, c.beak)}/>
-       <path d="M296,214 C330,218 352,216 364,208" ${stroke(c, 3)}/>`
+    ? `<path d="M292,172 C330,168 366,178 380,192 C366,204 332,208 292,204 Z" ${filled(c, c.beak)}/>
+       <path d="M298,204 C330,210 356,206 372,196" ${stroke(c, 2.6)}/>`
     : `<path d="M292,180 C324,178 348,186 358,196 C346,204 322,206 294,204 Z" ${filled(c, c.beak)}/>
        <path d="M294,208 C318,222 342,220 352,210 C338,232 304,234 292,214 Z" ${filled(c, c.beak)}/>
        <path d="M293,204 C316,212 340,210 354,200 C340,216 310,218 293,208 Z" fill="#463c36" stroke="none"/>`;
@@ -198,10 +214,10 @@ function sideView(c) {
     : `<path d="M212,58 q-10,-26 -22,-33 M228,54 q-2,-28 6,-38 M244,58 q12,-22 24,-28" ${stroke(c, 4)}/>`;
   return `
   <g class="root">
-    <path d="M226,64 C170,68 140,116 138,176 C136,226 106,256 100,312 C94,372 150,406 218,406 C290,406 336,368 330,306 C324,248 302,220 300,170 C298,112 278,62 226,64 Z" ${filled(c, c.body)}/>
+    <path d="M226,64 C170,68 140,116 138,176 C136,226 106,256 100,312 C94,372 150,406 218,406 C290,406 336,368 330,306 C324,248 302,220 300,170 C298,112 278,62 226,64 Z" ${filled(c, dark)}/>
     <path d="M226,64 C170,68 140,116 138,176 C136,226 106,256 100,312 C94,372 150,406 218,406 C290,406 336,368 330,306 C324,248 302,220 300,170 C298,112 278,62 226,64 Z" fill="url(#hatch-${c.id})" stroke="none" opacity="0.32"/>
     <path d="M300,236 C322,268 326,330 300,368 C280,394 240,402 218,398 C266,388 296,342 292,290 C290,262 296,246 300,236 Z" ${filled(c, c.belly)}/>
-    <path d="M150,220 C128,252 122,304 132,340 C138,358 160,352 170,326 C180,294 176,250 168,222 Z" ${filled(c, c.body)}/>
+    <path d="M150,220 C128,252 122,304 132,340 C138,358 160,352 170,326 C180,294 176,250 168,222 Z" ${filled(c, dark)}/>
     ${tuft}
     <ellipse cx="266" cy="148" rx="34" ry="44" ${filled(c, npc ? '#fbf8ef' : '#fdfaf2')}/>
     ${npc
@@ -216,17 +232,18 @@ function sideView(c) {
 }
 
 function backView(c) {
+  const dark = c.id === 'npc' ? c.dark : c.body;
   const tuft = c.id === 'npc'
     ? `<path d="M176,62 q-12,-18 -26,-22 M196,58 q-4,-24 -14,-32 M218,58 q6,-22 16,-28" ${stroke(c, 4)}/>`
     : `<path d="M184,60 q-8,-26 -18,-34 M200,56 q-2,-28 4,-38 M216,60 q10,-24 20,-30" ${stroke(c, 4)}/>`;
   return `
   <g class="root">
-    <path d="M200,62 C150,64 122,110 118,166 C115,212 78,246 70,308 C63,372 126,406 200,406 C274,406 337,372 330,308 C322,246 285,212 282,166 C278,110 250,64 200,62 Z" ${filled(c, c.body)}/>
+    <path d="M200,62 C150,64 122,110 118,166 C115,212 78,246 70,308 C63,372 126,406 200,406 C274,406 337,372 330,308 C322,246 285,212 282,166 C278,110 250,64 200,62 Z" ${filled(c, dark)}/>
     <path d="M200,62 C150,64 122,110 118,166 C115,212 78,246 70,308 C63,372 126,406 200,406 C274,406 337,372 330,308 C322,246 285,212 282,166 C278,110 250,64 200,62 Z" fill="url(#hatch-${c.id})" stroke="none" opacity="0.4"/>
     ${tuft}
-    <path d="M92,220 C68,250 58,300 68,338 C74,354 94,348 104,322 Z" ${filled(c, c.body)}/>
-    <path d="M308,220 C332,250 342,300 332,338 C326,354 306,348 296,322 Z" ${filled(c, c.body)}/>
-    <path d="M182,368 C190,388 210,388 218,368 C214,394 186,394 182,368 Z" ${filled(c, c.body)}/>
+    <path d="M92,220 C68,250 58,300 68,338 C74,354 94,348 104,322 Z" ${filled(c, dark)}/>
+    <path d="M308,220 C332,250 342,300 332,338 C326,354 306,348 296,322 Z" ${filled(c, dark)}/>
+    <path d="M182,368 C190,388 210,388 218,368 C214,394 186,394 182,368 Z" ${filled(c, dark)}/>
     <path d="M128,404 a14,11 0 0 1 24,-6 a12,10 0 0 1 20,0 a14,11 0 0 1 22,8 z" ${filled(c, c.foot, 3)}/>
     <path d="M206,406 a14,11 0 0 1 22,-8 a12,10 0 0 1 20,0 a14,11 0 0 1 24,6 z" ${filled(c, c.foot, 3)}/>
   </g>`;
@@ -269,22 +286,25 @@ export class SketchPenguin {
       footR: q('.footR'),
     };
     // transform origins (userSpace px within the 400x440 viewBox)
+    const npc = config.id === 'npc';
     this._origins = {
-      body: '200px 404px',
-      head: '200px 226px',
-      flipperL: config.id === 'npc' ? '88px 220px' : '104px 216px',
-      flipperR: config.id === 'npc' ? '312px 220px' : '304px 216px',
-      browL: '162px 104px',
-      browR: '238px 104px',
-      root: '200px 404px',
+      body: '200px 414px',
+      head: '200px 250px',
+      flipperL: npc ? '112px 236px' : '120px 262px',
+      flipperR: npc ? '288px 236px' : '280px 262px',
+      browL: npc ? '163px 134px' : '172px 106px',
+      browR: npc ? '237px 134px' : '228px 106px',
+      root: '200px 414px',
     };
     for (const k of ['body', 'head', 'flipperL', 'flipperR', 'browL', 'browR', 'root']) {
       this.parts[k].style.transformOrigin = this._origins[k];
     }
-    this.parts.mouth.style.transformOrigin = '200px 202px';
-    const eyeY = config.id === 'npc' ? 150 : 146;
-    this.parts.lidL.style.transformOrigin = `${config.id === 'npc' ? 163 : 166}px ${eyeY}px`;
-    this.parts.lidR.style.transformOrigin = `${config.id === 'npc' ? 237 : 240}px ${eyeY}px`;
+    this.parts.mouth.style.transformOrigin = npc ? '200px 206px' : '200px 208px';
+    this.parts.lidL.style.transformOrigin = `${config.eye.lx}px ${config.eye.cy}px`;
+    this.parts.lidR.style.transformOrigin = `${config.eye.rx}px ${config.eye.cy}px`;
+    this._pupilOrigins = npc
+      ? ['180px 158px', '220px 158px']
+      : ['176px 158px', '224px 158px'];
 
     // world position in stage percent (x) — the stage moves this.el
     this.x = 0;
@@ -356,18 +376,18 @@ export class SketchPenguin {
     const p = this.parts;
     const lid = Math.max(e.lid, this.blink);
     // eyelids slide down over the eyes (NPC gets a slight angry skew)
-    const skew = this.cfg.id === 'npc' ? 7 : 0;
-    const lidRange = this.cfg.id === 'npc' ? 124 : 120;
+    const skew = this.cfg.lidSkew;
+    const lidRange = this.cfg.eye.rH * 2 + 20;
     p.lidL.style.transform = `translateY(${-lidRange * (1 - lid)}px) rotate(${skew}deg)`;
     p.lidR.style.transform = `translateY(${-lidRange * (1 - lid)}px) rotate(${-skew}deg)`;
     p.browL.style.transform = `translateY(${e.browY + (m.browLift || 0)}px) rotate(${e.browL}deg)`;
     p.browR.style.transform = `translateY(${e.browY + (m.browLift || 0)}px) rotate(${e.browR}deg)`;
     p.pupilL.style.transform = `translateY(${e.pupilY}px) scale(${e.pupil})`;
     p.pupilR.style.transform = `translateY(${e.pupilY}px) scale(${e.pupil})`;
-    p.pupilL.style.transformOrigin = this.cfg.id === 'npc' ? '170px 160px' : '173px 150px';
-    p.pupilR.style.transformOrigin = this.cfg.id === 'npc' ? '230px 160px' : '233px 150px';
+    p.pupilL.style.transformOrigin = this._pupilOrigins[0];
+    p.pupilR.style.transformOrigin = this._pupilOrigins[1];
     const open = clamp(this.talking ? Math.max(e.beakOpen, this._talkOpen) : e.beakOpen, 0, 1);
-    p.jaw.style.transform = `translateY(${open * (this.cfg.id === 'cap' ? 20 : 12)}px)`;
+    p.jaw.style.transform = `translateY(${open * this.cfg.jawTravel}px)`;
     p.mouth.style.transform = `scaleY(${0.12 + open * 0.88})`;
     p.head.style.transform = `translateY(${e.headY + (m.headY || 0)}px) rotate(${e.headRot + (m.headRot || 0)}deg)`;
     p.body.style.transform = `translateY(${m.bodyY || 0}px) rotate(${m.bodyRot || 0}deg)`;
