@@ -9,11 +9,9 @@ export const GROQ_TTS_VOICES = [
   'Mikail-PlayAI', 'Mitch-PlayAI', 'Quinn-PlayAI', 'Thunder-PlayAI',
 ];
 
-// Character delivery: CAP the warm excited storyteller, NPC deep and unhurried.
-const PROFILES = {
-  cap: { pitch: 1.18, rate: 1.06, style: 'bright' },
-  npc: { pitch: 0.62, rate: 0.85, style: 'deep' },
-};
+// Auto voice-picking leans deep for NPC, bright for CAP — but voices play
+// exactly as the platform tuned them (no pitch/rate shaping).
+const STYLE = { cap: 'bright', npc: 'deep' };
 
 let deviceVoices = [];
 function refreshVoices() {
@@ -78,23 +76,18 @@ export async function speakText(charId, text, cfg, { onstart, onend } = {}) {
       return;
     } catch (e) {
       console.warn('Groq TTS failed — falling back to device voice', e);
+      window.dispatchEvent(new CustomEvent('voice-fallback', { detail: String(e.message || e) }));
     }
   }
 
   if (!('speechSynthesis' in window)) { onend?.(); return; }
   refreshVoices();
-  const p = PROFILES[charId];
   const u = new SpeechSynthesisUtterance(clean);
   const explicit = cfg.deviceVoiceName && cfg.deviceVoiceName !== 'auto';
   const v = explicit
     ? deviceVoices.find((x) => x.name === cfg.deviceVoiceName)
-    : autoVoice(p.style);
+    : autoVoice(STYLE[charId]);
   if (v) { u.voice = v; u.lang = v.lang; } // matching lang makes Chrome honor the voice
-  // Full character shaping in auto mode; soften it when the user picked a voice
-  // so their chosen voice's own character comes through.
-  const soften = explicit ? 0.45 : 1;
-  u.pitch = 1 + (p.pitch - 1) * soften;
-  u.rate = 1 + (p.rate - 1) * soften;
   u.onstart = () => onstart?.();
   u.onend = () => onend?.();
   u.onerror = () => onend?.();
