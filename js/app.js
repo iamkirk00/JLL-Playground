@@ -230,6 +230,12 @@ function refreshBrainStatus(state = null, msg = null) {
 }
 refreshBrainStatus();
 
+// make a silent Groq→device voice fallback visible instead of mysterious
+window.addEventListener('voice-fallback', (e) => {
+  refreshBrainStatus('error', `Groq voice unavailable (${String(e.detail).slice(0, 60)}) — using device voice`);
+  setTimeout(() => refreshBrainStatus(), 6000);
+});
+
 async function charRespond(charId, userText) {
   const char = characters[charId];
   const other = characters[charId === 'cap' ? 'npc' : 'cap'];
@@ -610,7 +616,7 @@ function renderVoiceRows() {
     } else {
       const auto = document.createElement('option');
       auto.value = 'auto';
-      auto.textContent = 'Auto — picked and pitched for character';
+      auto.textContent = 'Auto — picked to fit their character';
       sel.appendChild(auto);
       for (const v of listDeviceVoices().filter((v) => v.lang.toLowerCase().startsWith('en'))) {
         const opt = document.createElement('option');
