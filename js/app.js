@@ -1,6 +1,7 @@
 // app.js — paper stage, chat orchestration, editors, sheet UI.
 import { SketchPenguin, PENGUIN_CONFIGS, EMOTES } from './sketch-penguin.js';
 import { buildSystemPrompt, callLLM, testKey, parseEmote, scriptedReply, scriptedBanter, PROVIDERS, defaultModel } from './brain.js';
+import { speakText, stopSpeaking, listDeviceVoices, GROQ_TTS_VOICES } from './voice.js';
 import { loadCharacters, saveCharacters, resetCharacters, loadSettings, saveSettings, DEFAULT_CHARACTERS } from '../data/personas.js';
 import { generateSheet, renderSingle, downloadCanvas } from './sheet.js';
 
@@ -16,12 +17,35 @@ function migrateSettings(s) {
     provider: s.provider || 'anthropic',
     keys: { anthropic: '', groq: '', ...(s.keys || {}) },
     models: { anthropic: defaultModel('anthropic'), groq: defaultModel('groq'), ...(s.models || {}) },
+    voice: {
+      enabled: true,
+      engine: 'device',
+      ...(s.voice || {}),
+      device: { cap: 'auto', npc: 'auto', ...((s.voice || {}).device || {}) },
+      groq: { cap: 'Celeste-PlayAI', npc: 'Atlas-PlayAI', ...((s.voice || {}).groq || {}) },
+    },
   };
   if (s.apiKey && !s.keys) { // pre-provider settings
     out.keys.anthropic = s.apiKey;
     if (s.model) out.models.anthropic = s.model;
   }
   return out;
+}
+
+// Browsers only allow audio after the user has interacted with the page.
+let userInteracted = false;
+for (const ev of ['pointerdown', 'keydown']) {
+  window.addEventListener(ev, () => { userInteracted = true; }, { once: true, capture: true });
+}
+const voicePending = { npc: false, cap: false };
+function voiceOn() { return settings.voice.enabled && userInteracted; }
+function voiceCfg(charId) {
+  return {
+    engine: settings.voice.engine,
+    deviceVoiceName: settings.voice.device[charId],
+    groqKey: settings.keys.groq,
+    groqVoice: settings.voice.groq[charId],
+  };
 }
 
 // ============================================================ paper stage
@@ -106,13 +130,21 @@ function speak(charId, text, holdMs = null) {
   el.textContent = '';
   p.setTalking(true);
 
+  if (voiceOn()) {
+    voicePending[charId] = true;
+    speakText(charId, text, voiceCfg(charId), {
+      onstart: () => p.setTalking(true),
+      onend: () => { voicePending[charId] = false; p.setTalking(false); },
+    });
+  }
+
   let i = 0;
   const tw = setInterval(() => {
     i += 2;
     el.textContent = text.slice(0, i);
     if (i >= text.length) {
       clearInterval(tw);
-      p.setTalking(false);
+      if (!voicePending[charId]) p.setTalking(false); // else the voice closes the beak
       const hold = holdMs ?? Math.max(2600, text.length * 45);
       bubbleTimers[charId] = setTimeout(() => el.classList.add('hidden'), hold);
     }
@@ -134,6 +166,17 @@ const chatHistory = { npc: [], cap: [] }; // per-character API transcripts
 let who = 'cap';
 let busy = false;
 updateCast(); // kicks off the entrance waddle for whoever is on stage
+
+// ---- mobile chat drawer: collapse after sending so the stage stays visible
+const chatPanel = $('#chat-panel');
+const collapseBtn = $('#chat-collapse');
+function setChatCollapsed(on) {
+  chatPanel.classList.toggle('collapsed', on);
+  collapseBtn.textContent = on ? '▴ open chat' : '▾ hide chat — watch the stage';
+  chatPanel.scrollTop = 0; // focus inside overflow:hidden can force-scroll; pin it
+  if (on) document.activeElement?.blur?.();
+}
+collapseBtn.addEventListener('click', () => setChatCollapsed(!chatPanel.classList.contains('collapsed')));
 
 function addMsg(kind, text, name = null) {
   const div = document.createElement('div');
@@ -210,6 +253,7 @@ $('#chat-form').addEventListener('submit', async (e) => {
   busy = true;
   $('#chat-send').disabled = true;
   addMsg('user', text, 'You');
+  if (phoneMq.matches) setChatCollapsed(true); // clear the stage for the reply
 
   try {
     if (who === 'both') {
@@ -228,7 +272,8 @@ $('#chat-form').addEventListener('submit', async (e) => {
   } finally {
     busy = false;
     $('#chat-send').disabled = false;
-    input.focus();
+    if (!chatPanel.classList.contains('collapsed')) input.focus();
+    else chatPanel.scrollTop = 0;
   }
 });
 
@@ -246,6 +291,7 @@ $('#btn-banter').addEventListener('click', async () => {
   $('#btn-banter').disabled = true;
   addMsg('sys', '— NPC & CAP start riffing —');
   setCast(['npc', 'cap'], [34, 66]); // banter needs both on stage, even on phones
+  if (phoneMq.matches) setChatCollapsed(true);
 
   try {
     if (hasKey()) {
@@ -506,3 +552,97 @@ $('#btn-test-key').addEventListener('click', async () => {
     res.textContent = `✗ ${err.message.slice(0, 120)}`;
   }
 });
+
+// ============================================================ voice settings
+const SAMPLE_LINES = {
+  cap: "Now this is a story worth telling. Pull up some ice, friend!",
+  npc: "I had a thought. I'm keeping it. You get this sentence instead.",
+};
+
+function refreshVoiceToggleUI() {
+  $$('#voice-toggle .seg-btn').forEach((b) =>
+    b.classList.toggle('active', (b.dataset.v === 'on') === settings.voice.enabled));
+  $('#btn-voice').textContent = settings.voice.enabled ? '🔊' : '🔇';
+  $('#voice-engine').value = settings.voice.engine;
+  $('#voice-engine-help').textContent = settings.voice.engine === 'groq'
+    ? 'Uses the Groq key from the section above. Accept the PlayAI TTS model terms once in console.groq.com if prompted.'
+    : 'Zero setup — voice quality depends on your device. iPhones and Macs sound best.';
+}
+
+function renderVoiceRows() {
+  const wrap = $('#voice-rows');
+  wrap.innerHTML = '';
+  for (const id of ['cap', 'npc']) {
+    const label = document.createElement('label');
+    label.className = 'field';
+    const sel = document.createElement('select');
+    if (settings.voice.engine === 'groq') {
+      for (const v of GROQ_TTS_VOICES) {
+        const opt = document.createElement('option');
+        opt.value = v;
+        opt.textContent = v.replace('-PlayAI', '') + (v === (id === 'cap' ? 'Celeste-PlayAI' : 'Atlas-PlayAI') ? ' — recommended' : '');
+        sel.appendChild(opt);
+      }
+      sel.value = settings.voice.groq[id];
+    } else {
+      const auto = document.createElement('option');
+      auto.value = 'auto';
+      auto.textContent = 'Auto — picked and pitched for character';
+      sel.appendChild(auto);
+      for (const v of listDeviceVoices().filter((v) => v.lang.toLowerCase().startsWith('en'))) {
+        const opt = document.createElement('option');
+        opt.value = v.name;
+        opt.textContent = v.name;
+        sel.appendChild(opt);
+      }
+      sel.value = settings.voice.device[id] || 'auto';
+    }
+    sel.addEventListener('change', () => {
+      settings.voice[settings.voice.engine === 'groq' ? 'groq' : 'device'][id] = sel.value;
+      saveSettings(settings);
+    });
+    const test = document.createElement('button');
+    test.type = 'button';
+    test.textContent = `▶ Hear ${characters[id].name}`;
+    test.style.marginTop = '6px';
+    test.addEventListener('click', () => {
+      userInteracted = true;
+      stopSpeaking();
+      speakText(id, SAMPLE_LINES[id], voiceCfg(id), {});
+    });
+    const span = document.createElement('span');
+    span.textContent = `${characters[id].name} voice`;
+    label.append(span, sel, test);
+    wrap.appendChild(label);
+  }
+}
+
+$$('#voice-toggle .seg-btn').forEach((btn) => btn.addEventListener('click', () => {
+  settings.voice.enabled = btn.dataset.v === 'on';
+  if (!settings.voice.enabled) stopSpeaking();
+  saveSettings(settings);
+  refreshVoiceToggleUI();
+}));
+
+$('#voice-engine').addEventListener('change', () => {
+  settings.voice.engine = $('#voice-engine').value;
+  saveSettings(settings);
+  refreshVoiceToggleUI();
+  renderVoiceRows();
+});
+
+$('#btn-voice').addEventListener('click', () => {
+  settings.voice.enabled = !settings.voice.enabled;
+  if (!settings.voice.enabled) stopSpeaking();
+  saveSettings(settings);
+  refreshVoiceToggleUI();
+});
+
+// device voice lists load asynchronously in some browsers
+if ('speechSynthesis' in window) {
+  speechSynthesis.addEventListener?.('voiceschanged', () => {
+    if (settings.voice.engine === 'device') renderVoiceRows();
+  });
+}
+refreshVoiceToggleUI();
+renderVoiceRows();
