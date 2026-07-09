@@ -121,35 +121,56 @@ requestAnimationFrame(loop);
 
 // ============================================================ speaking
 const bubbleTimers = {};
+// One penguin talks at a time: every speak() is queued behind the previous one
+// (bubble + voice), so conversations stage naturally instead of overlapping.
+let speechQueue = Promise.resolve();
 function speak(charId, text, holdMs = null) {
-  const el = bubbles[charId];
-  const p = penguins[charId];
-  clearTimeout(bubbleTimers[charId]);
-  clearInterval(bubbleTimers[charId + '_tw']);
-  el.classList.remove('hidden');
-  el.textContent = '';
-  p.setTalking(true);
+  const run = () => new Promise((resolve) => {
+    const el = bubbles[charId];
+    const p = penguins[charId];
+    clearTimeout(bubbleTimers[charId]);
+    clearInterval(bubbleTimers[charId + '_tw']);
+    el.classList.remove('hidden');
+    el.textContent = '';
+    p.setTalking(true);
 
-  if (voiceOn()) {
-    voicePending[charId] = true;
-    speakText(charId, text, voiceCfg(charId), {
-      onstart: () => p.setTalking(true),
-      onend: () => { voicePending[charId] = false; p.setTalking(false); },
-    });
-  }
+    let textDone = false;
+    let voiceDone = true;
+    let resolved = false;
+    const maybeFinish = () => {
+      if (textDone && voiceDone && !resolved) { resolved = true; resolve(); }
+    };
 
-  let i = 0;
-  const tw = setInterval(() => {
-    i += 2;
-    el.textContent = text.slice(0, i);
-    if (i >= text.length) {
-      clearInterval(tw);
-      if (!voicePending[charId]) p.setTalking(false); // else the voice closes the beak
-      const hold = holdMs ?? Math.max(2600, text.length * 45);
-      bubbleTimers[charId] = setTimeout(() => el.classList.add('hidden'), hold);
+    if (voiceOn()) {
+      voiceDone = false;
+      voicePending[charId] = true;
+      speakText(charId, text, voiceCfg(charId), {
+        onstart: () => p.setTalking(true),
+        onend: () => { voicePending[charId] = false; voiceDone = true; p.setTalking(false); maybeFinish(); },
+      });
+      // never let a stuck audio engine hang the whole conversation
+      setTimeout(() => {
+        if (!voiceDone) { voiceDone = true; voicePending[charId] = false; maybeFinish(); }
+      }, 45000);
     }
-  }, 24);
-  bubbleTimers[charId + '_tw'] = tw;
+
+    let i = 0;
+    const tw = setInterval(() => {
+      i += 2;
+      el.textContent = text.slice(0, i);
+      if (i >= text.length) {
+        clearInterval(tw);
+        if (!voicePending[charId]) p.setTalking(false); // else the voice closes the beak
+        const hold = holdMs ?? Math.max(2600, text.length * 45);
+        bubbleTimers[charId] = setTimeout(() => el.classList.add('hidden'), hold);
+        textDone = true;
+        maybeFinish();
+      }
+    }, 24);
+    bubbleTimers[charId + '_tw'] = tw;
+  });
+  speechQueue = speechQueue.then(run, run);
+  return speechQueue;
 }
 
 function performEmote(charId, emote) {
@@ -240,7 +261,7 @@ async function charRespond(charId, userText) {
   const { emote, text } = parseEmote(raw);
   if (emote) performEmote(charId, emote);
   addMsg(charId, text, char.name);
-  speak(charId, text);
+  await speak(charId, text); // hold the floor until this penguin finishes
   return text;
 }
 
@@ -260,7 +281,7 @@ $('#chat-form').addEventListener('submit', async (e) => {
       const typing1 = addMsg('cap typing', '…');
       const capText = await charRespond('cap', text);
       typing1.remove();
-      await new Promise((r) => setTimeout(r, 900));
+      await new Promise((r) => setTimeout(r, 500));
       const typing2 = addMsg('npc typing', '…');
       await charRespond('npc', `${text}\n\n(${characters.cap.name} just replied: "${capText}" — react to the user and to that.)`);
       typing2.remove();
@@ -318,8 +339,8 @@ $('#btn-banter').addEventListener('click', async () => {
         const { emote, text } = parseEmote(raw);
         if (emote) performEmote(speaker, emote);
         addMsg(speaker, text, char.name);
-        speak(speaker, text);
-        await new Promise((r) => setTimeout(r, Math.max(2200, text.length * 42)));
+        await speak(speaker, text);
+        await new Promise((r) => setTimeout(r, 550)); // a beat between turns
         speaker = speaker === 'cap' ? 'npc' : 'cap';
       }
       if (transcript.length) { busy = false; $('#btn-banter').disabled = false; return; }
@@ -329,8 +350,8 @@ $('#btn-banter').addEventListener('click', async () => {
       const { emote, text } = parseEmote(raw);
       if (emote) performEmote(speaker, emote);
       addMsg(speaker, text, characters[speaker].name);
-      speak(speaker, text);
-      await new Promise((r) => setTimeout(r, Math.max(2400, text.length * 45)));
+      await speak(speaker, text);
+      await new Promise((r) => setTimeout(r, 550));
     }
   } finally {
     busy = false;
@@ -361,6 +382,8 @@ $$('#tabs .tab').forEach((btn) => btn.addEventListener('click', () => {
   btn.classList.add('active');
   $$('.view').forEach((v) => v.classList.remove('active'));
   $(`#view-${btn.dataset.tab}`).classList.add('active');
+  // device voice lists load lazily on some platforms — refresh when visiting settings
+  if (btn.dataset.tab === 'settings' && settings.voice.engine === 'device') renderVoiceRows();
 }));
 
 // ============================================================ character editors
@@ -592,7 +615,7 @@ function renderVoiceRows() {
       for (const v of listDeviceVoices().filter((v) => v.lang.toLowerCase().startsWith('en'))) {
         const opt = document.createElement('option');
         opt.value = v.name;
-        opt.textContent = v.name;
+        opt.textContent = `${v.name} (${v.lang})`;
         sel.appendChild(opt);
       }
       sel.value = settings.voice.device[id] || 'auto';
@@ -600,6 +623,10 @@ function renderVoiceRows() {
     sel.addEventListener('change', () => {
       settings.voice[settings.voice.engine === 'groq' ? 'groq' : 'device'][id] = sel.value;
       saveSettings(settings);
+      // audition the new voice immediately so changes are self-verifying
+      userInteracted = true;
+      stopSpeaking();
+      speakText(id, id === 'cap' ? 'CAP here — how do I sound?' : 'NPC. Voice check. Riveting.', voiceCfg(id), {});
     });
     const test = document.createElement('button');
     test.type = 'button';
@@ -646,3 +673,54 @@ if ('speechSynthesis' in window) {
 }
 refreshVoiceToggleUI();
 renderVoiceRows();
+
+// ============================================================ voice inbound
+// Push-to-talk via the browser's built-in speech recognition. The final
+// transcript drops into the chat box and sends itself.
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+const micButtons = [$('#btn-mic'), $('#btn-mic-stage')];
+let rec = null;
+let listening = false;
+
+function setListening(on) {
+  listening = on;
+  for (const b of micButtons) {
+    b.classList.toggle('listening', on);
+    b.textContent = on ? '🔴' : '🎤';
+  }
+  $('#chat-input').placeholder = on ? 'Listening… tap 🔴 to stop' : 'Share a goal, a doubt, a story…';
+}
+
+function toggleMic() {
+  if (!SR || busy) return;
+  if (listening) { try { rec?.stop(); } catch {} return; }
+  stopSpeaking(); // don't transcribe the penguins
+  rec = new SR();
+  rec.lang = 'en-US';
+  rec.interimResults = true;
+  let finalText = '';
+  rec.onresult = (e) => {
+    let interim = '';
+    for (const r of e.results) {
+      if (r.isFinal) finalText += r[0].transcript;
+      else interim += r[0].transcript;
+    }
+    $('#chat-input').value = (finalText + ' ' + interim).trim();
+  };
+  rec.onerror = () => setListening(false);
+  rec.onend = () => {
+    setListening(false);
+    const text = $('#chat-input').value.trim();
+    if (text) $('#chat-form').requestSubmit();
+  };
+  setListening(true);
+  try { rec.start(); } catch { setListening(false); }
+}
+
+if (!SR) {
+  for (const b of micButtons) {
+    b.style.display = 'none'; // e.g. Firefox — Groq Whisper path is the future enhancement here
+  }
+} else {
+  for (const b of micButtons) b.addEventListener('click', toggleMic);
+}

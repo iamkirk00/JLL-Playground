@@ -161,6 +161,18 @@ body {
   border-radius: 999px; cursor: pointer; font-size: 14px;
 }
 #chat-send:disabled { opacity: 0.5; cursor: default; }
+#btn-mic {
+  border: 1px solid var(--line); background: #fff; border-radius: 50%;
+  width: 38px; height: 38px; flex: none; cursor: pointer; font-size: 15px;
+}
+#btn-mic.listening, #btn-mic-stage.listening {
+  background: #f6d9d3; border-color: var(--danger);
+  animation: mic-pulse 1.2s ease-in-out infinite;
+}
+@keyframes mic-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 #c0564a55; }
+  50% { box-shadow: 0 0 0 8px #c0564a22; }
+}
 
 /* ---------- Shared page styles ---------- */
 .page-intro { max-width: 860px; margin: 0 auto 20px; }

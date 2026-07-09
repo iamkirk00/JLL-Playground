@@ -85,15 +85,20 @@ export async function speakText(charId, text, cfg, { onstart, onend } = {}) {
   refreshVoices();
   const p = PROFILES[charId];
   const u = new SpeechSynthesisUtterance(clean);
-  const v = cfg.deviceVoiceName && cfg.deviceVoiceName !== 'auto'
+  const explicit = cfg.deviceVoiceName && cfg.deviceVoiceName !== 'auto';
+  const v = explicit
     ? deviceVoices.find((x) => x.name === cfg.deviceVoiceName)
     : autoVoice(p.style);
-  if (v) u.voice = v;
-  u.pitch = p.pitch;
-  u.rate = p.rate;
+  if (v) { u.voice = v; u.lang = v.lang; } // matching lang makes Chrome honor the voice
+  // Full character shaping in auto mode; soften it when the user picked a voice
+  // so their chosen voice's own character comes through.
+  const soften = explicit ? 0.45 : 1;
+  u.pitch = 1 + (p.pitch - 1) * soften;
+  u.rate = 1 + (p.rate - 1) * soften;
   u.onstart = () => onstart?.();
   u.onend = () => onend?.();
   u.onerror = () => onend?.();
   stopSpeaking();
-  speechSynthesis.speak(u);
+  // speak() immediately after cancel() gets dropped on some engines
+  setTimeout(() => speechSynthesis.speak(u), 60);
 }
