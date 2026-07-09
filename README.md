@@ -19,10 +19,13 @@ hand-drawn pencil animation. No external assets, no 3D engine.
 - **Sketchbook stage** — the penguins live on cream paper with idle/waddle/wave/
   laugh/think/shrug/excited animations, blinking, talking beaks, and speech
   bubbles pinned above their heads.
-- **AI brain** — add your Anthropic API key in *Settings* and the penguins respond
-  in-persona via Claude, drawing on their editable backstories and memories. Replies
-  start with an emote tag (`[wave]`, `[think]`, …) that drives their animation.
-  Without a key, a built-in scripted personality engine keeps the page fully working.
+- **AI brain** — pick a provider in *Settings* (Anthropic or Groq), paste your API
+  key, and choose from recommended models. The penguins respond in-persona, drawing
+  on their editable backstories and memories; replies start with an emote tag
+  (`[wave]`, `[think]`, …) that drives their animation. Without a key, a built-in
+  scripted personality engine keeps the page fully working.
+- **Phone-friendly** — on small screens only the penguin you're talking to takes
+  the stage (both appear in "Both" mode or during banter), with a compact layout.
 - **Character Studio** — edit each penguin's name, tagline, personality, backstory,
   and key memories. Everything persists in your browser; export/import as JSON.
 - **Duo mode** — talk to *Both*, or hit *“Let them chat”* and watch NPC & CAP riff
@@ -55,11 +58,13 @@ python3 -m http.server 8080   # or any static server
 
 ## Using the AI mode
 
-1. Get an API key at [console.anthropic.com](https://console.anthropic.com).
-2. Open **Settings**, paste the key, pick a model, **Save**, then **Test connection**.
-3. The key is stored only in your browser's localStorage and is sent only to
-   `api.anthropic.com` (using Anthropic's CORS-enabled direct browser access).
-   Don't use a shared/production key on a public computer.
+1. Get an API key: [console.anthropic.com](https://console.anthropic.com) (Claude)
+   or [console.groq.com](https://console.groq.com) (Groq — has a free tier, handy
+   for initial testing).
+2. Open **Settings**, pick the provider, paste the key, pick a model (the
+   recommended one is preselected), **Save**, then **Test connection**.
+3. Keys are stored only in your browser's localStorage and sent only to the chosen
+   provider's API. Don't use a shared/production key on a public computer.
 
 ## Project layout
 

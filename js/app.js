@@ -1,6 +1,6 @@
 // app.js — paper stage, chat orchestration, editors, sheet UI.
 import { SketchPenguin, PENGUIN_CONFIGS, EMOTES } from './sketch-penguin.js';
-import { buildSystemPrompt, callClaude, testKey, parseEmote, scriptedReply, scriptedBanter } from './brain.js';
+import { buildSystemPrompt, callLLM, testKey, parseEmote, scriptedReply, scriptedBanter, PROVIDERS, defaultModel } from './brain.js';
 import { loadCharacters, saveCharacters, resetCharacters, loadSettings, saveSettings, DEFAULT_CHARACTERS } from '../data/personas.js';
 import { generateSheet, renderSingle, downloadCanvas } from './sheet.js';
 
@@ -8,7 +8,21 @@ const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => [...document.querySelectorAll(sel)];
 
 let characters = loadCharacters();
-let settings = loadSettings();
+let settings = migrateSettings(loadSettings());
+
+// settings shape: { provider, keys: {anthropic, groq}, models: {anthropic, groq} }
+function migrateSettings(s) {
+  const out = {
+    provider: s.provider || 'anthropic',
+    keys: { anthropic: '', groq: '', ...(s.keys || {}) },
+    models: { anthropic: defaultModel('anthropic'), groq: defaultModel('groq'), ...(s.models || {}) },
+  };
+  if (s.apiKey && !s.keys) { // pre-provider settings
+    out.keys.anthropic = s.apiKey;
+    if (s.model) out.models.anthropic = s.model;
+  }
+  return out;
+}
 
 // ============================================================ paper stage
 const stageWrap = $('#stage-wrap');
@@ -19,12 +33,28 @@ const penguins = {
 // entrance: waddle in from the wings
 penguins.npc.x = -18;
 penguins.cap.x = 118;
-penguins.npc.walkTo(30);
-penguins.cap.walkTo(70);
 let greeted = false;
 
 const mounts = { npc: $('#mount-npc'), cap: $('#mount-cap') };
 const shadows = { npc: $('#shadow-npc'), cap: $('#shadow-cap') };
+
+// On phones, only the penguin you're talking to takes the stage ("Both" shows both).
+const phoneMq = window.matchMedia('(max-width: 760px)');
+function visible(id) { return mounts[id].style.display !== 'none'; }
+function setCast(ids, positions) {
+  for (const id of ['npc', 'cap']) {
+    const show = ids.includes(id);
+    mounts[id].style.display = show ? '' : 'none';
+    shadows[id].style.display = show ? '' : 'none';
+    if (!show) bubbles[id].classList.add('hidden');
+  }
+  ids.forEach((id, i) => penguins[id].walkTo(positions[i]));
+}
+function updateCast() {
+  if (phoneMq.matches && who !== 'both') setCast([who], [50]);
+  else setCast(['npc', 'cap'], [30, 70]);
+}
+phoneMq.addEventListener('change', updateCast);
 
 // speech bubbles pinned above heads
 const bubbles = { npc: $('#bubble-npc'), cap: $('#bubble-cap') };
@@ -53,9 +83,13 @@ function loop(now) {
   }
   if (!greeted && !penguins.cap.walk && !penguins.npc.walk) {
     greeted = true;
-    penguins.cap.play('wave', 2.4);
-    speak('cap', "Hey! Welcome to the Rookery. Ask us anything — or just say hi.", 5200);
-    setTimeout(() => { penguins.npc.play('shrug', 2); speak('npc', "I was told there would be fish.", 4200); }, 2600);
+    if (visible('cap')) {
+      penguins.cap.play('wave', 2.4);
+      speak('cap', "Hey! Welcome to the Rookery. Ask us anything — or just say hi.", 5200);
+    }
+    if (visible('npc')) {
+      setTimeout(() => { penguins.npc.play('shrug', 2); speak('npc', "I was told there would be fish.", 4200); }, visible('cap') ? 2600 : 400);
+    }
   }
   placeBubbles();
 }
@@ -99,6 +133,7 @@ const chatLog = $('#chat-log');
 const chatHistory = { npc: [], cap: [] }; // per-character API transcripts
 let who = 'cap';
 let busy = false;
+updateCast(); // kicks off the entrance waddle for whoever is on stage
 
 function addMsg(kind, text, name = null) {
   const div = document.createElement('div');
@@ -115,8 +150,9 @@ function addMsg(kind, text, name = null) {
   return div;
 }
 
-function hasKey() { return !!(settings.apiKey && settings.apiKey.trim()); }
-function model() { return settings.model || 'claude-sonnet-5'; }
+function provider() { return settings.provider; }
+function hasKey() { return !!(settings.keys[provider()] && settings.keys[provider()].trim()); }
+function model() { return settings.models[provider()] || defaultModel(provider()); }
 
 function refreshBrainStatus(state = null, msg = null) {
   const el = $('#brain-status');
@@ -125,7 +161,7 @@ function refreshBrainStatus(state = null, msg = null) {
     el.textContent = msg || 'API error — fell back to scripted mode';
     return;
   }
-  if (hasKey()) { el.className = 'online'; el.textContent = `live AI mode — ${model()}`; }
+  if (hasKey()) { el.className = 'online'; el.textContent = `live AI — ${PROVIDERS[provider()].label} · ${model()}`; }
   else { el.className = 'offline'; el.textContent = 'scripted mode — add an API key in Settings for live AI'; }
 }
 refreshBrainStatus();
@@ -139,8 +175,9 @@ async function charRespond(charId, userText) {
   let raw;
   if (hasKey()) {
     try {
-      raw = await callClaude({
-        apiKey: settings.apiKey,
+      raw = await callLLM({
+        provider: provider(),
+        apiKey: settings.keys[provider()],
         model: model(),
         system: buildSystemPrompt(char, other, 'user'),
         messages: chatHistory[charId],
@@ -199,6 +236,7 @@ $$('#who-picker .who').forEach((btn) => btn.addEventListener('click', () => {
   $$('#who-picker .who').forEach((b) => b.classList.remove('active'));
   btn.classList.add('active');
   who = btn.dataset.who;
+  updateCast();
 }));
 
 // ---- duo banter
@@ -207,6 +245,7 @@ $('#btn-banter').addEventListener('click', async () => {
   busy = true;
   $('#btn-banter').disabled = true;
   addMsg('sys', '— NPC & CAP start riffing —');
+  setCast(['npc', 'cap'], [34, 66]); // banter needs both on stage, even on phones
 
   try {
     if (hasKey()) {
@@ -220,8 +259,8 @@ $('#btn-banter').addEventListener('click', async () => {
           : [{ role: 'user', content: '(Kick off a short, fun exchange with your best friend. Pick any topic from your life.)' }];
         let raw;
         try {
-          raw = await callClaude({
-            apiKey: settings.apiKey, model: model(),
+          raw = await callLLM({
+            provider: provider(), apiKey: settings.keys[provider()], model: model(),
             system: buildSystemPrompt(char, other, 'banter'),
             messages,
           });
@@ -250,6 +289,7 @@ $('#btn-banter').addEventListener('click', async () => {
   } finally {
     busy = false;
     $('#btn-banter').disabled = false;
+    setTimeout(updateCast, 2500); // after the last bubble, restore the phone cast
   }
 });
 
@@ -408,12 +448,41 @@ $('#sheet-preview').addEventListener('click', async (e) => {
 });
 
 // ============================================================ settings
-$('#set-apikey').value = settings.apiKey || '';
-$('#set-model').value = settings.model || 'claude-sonnet-5';
+let uiProvider = settings.provider;
+
+function renderProviderUI() {
+  const p = PROVIDERS[uiProvider];
+  $$('#provider-pick .seg-btn').forEach((b) =>
+    b.classList.toggle('active', b.dataset.provider === uiProvider));
+  $('#set-apikey').value = settings.keys[uiProvider] || '';
+  $('#set-apikey').placeholder = p.keyHint;
+  $('#key-help').innerHTML =
+    `Stored only in this browser. Sent only to ${p.label}. ` +
+    `Create a key at <a href="${p.consoleUrl}" target="_blank" rel="noopener">${p.consoleUrl.replace('https://', '')}</a>.`;
+  const sel = $('#set-model');
+  sel.innerHTML = '';
+  for (const m of p.models) {
+    const opt = document.createElement('option');
+    opt.value = m.id;
+    opt.textContent = m.label;
+    sel.appendChild(opt);
+  }
+  sel.value = settings.models[uiProvider] || defaultModel(uiProvider);
+}
+renderProviderUI();
+
+$$('#provider-pick .seg-btn').forEach((btn) => btn.addEventListener('click', () => {
+  // keep whatever key is typed for the provider we're leaving
+  settings.keys[uiProvider] = $('#set-apikey').value.trim();
+  settings.models[uiProvider] = $('#set-model').value || settings.models[uiProvider];
+  uiProvider = btn.dataset.provider;
+  renderProviderUI();
+}));
 
 $('#btn-save-settings').addEventListener('click', () => {
-  settings.apiKey = $('#set-apikey').value.trim();
-  settings.model = $('#set-model').value;
+  settings.provider = uiProvider;
+  settings.keys[uiProvider] = $('#set-apikey').value.trim();
+  settings.models[uiProvider] = $('#set-model').value;
   saveSettings(settings);
   refreshBrainStatus();
   const res = $('#test-result');
@@ -429,9 +498,9 @@ $('#btn-test-key').addEventListener('click', async () => {
   res.className = '';
   res.textContent = 'Testing…';
   try {
-    await testKey(key, $('#set-model').value);
+    await testKey(uiProvider, key, $('#set-model').value);
     res.className = 'ok';
-    res.textContent = '✓ Connected — the penguins are thinking with Claude.';
+    res.textContent = `✓ Connected — the penguins are thinking with ${PROVIDERS[uiProvider].label}.`;
   } catch (err) {
     res.className = 'bad';
     res.textContent = `✗ ${err.message.slice(0, 120)}`;
