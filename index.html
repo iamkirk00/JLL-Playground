@@ -60,10 +60,12 @@
       <button class="anim-btn" data-anim="think">🤔 Think</button>
       <button class="anim-btn" data-anim="excited">🎉 Excited</button>
       <button class="anim-btn" data-anim="shrug">🤷 Shrug</button>
+      <button class="anim-btn" id="btn-voice" title="Toggle penguin voices">🔊</button>
     </div>
   </div>
 
   <aside id="chat-panel">
+    <button id="chat-collapse" type="button" aria-label="Toggle chat">▾ hide chat — watch the stage</button>
     <div id="chat-head">
       <span class="chat-title">Talk to</span>
       <div id="who-picker">
@@ -150,6 +152,27 @@
       <button id="btn-test-key">Test connection</button>
       <span id="test-result"></span>
     </div>
+  </div>
+
+  <div class="settings-card" id="voice-card">
+    <label class="field">
+      <span>Penguin voices</span>
+      <div class="seg" id="voice-toggle">
+        <button type="button" class="seg-btn" data-v="on">On</button>
+        <button type="button" class="seg-btn" data-v="off">Off</button>
+      </div>
+      <small>They speak their replies out loud, in character — CAP warm and lively,
+             NPC deep and unhurried. Changes apply immediately.</small>
+    </label>
+    <label class="field">
+      <span>Voice engine</span>
+      <select id="voice-engine">
+        <option value="device">Device voices — free, built into your phone/computer</option>
+        <option value="groq">Groq TTS — natural voices (uses your Groq API key)</option>
+      </select>
+      <small id="voice-engine-help"></small>
+    </label>
+    <div id="voice-rows"></div>
   </div>
 </main>
 
