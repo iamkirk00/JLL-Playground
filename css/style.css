@@ -221,8 +221,19 @@ body {
 
 /* ---------- Mobile ---------- */
 @media (max-width: 760px) {
+  #topbar { padding: 8px 10px; gap: 8px; }
+  .brand-icon { font-size: 22px; }
+  .brand h1 { font-size: 16px; }
+  .brand-sub { display: none; }
+  .tab { padding: 6px 10px; font-size: 12.5px; }
   #view-stage.active { flex-direction: column; }
-  #chat-panel { width: 100%; max-width: none; height: 45%; border-left: none; border-top: 1px solid var(--line); }
-  #anim-bar { bottom: 6px; padding: 4px 8px; }
+  #chat-panel { width: 100%; max-width: none; height: 48%; border-left: none; border-top: 1px solid var(--line); }
+  #chat-head { padding: 8px 10px; gap: 6px; }
+  #btn-banter { margin-left: 0; }
+  .penguin-mount { height: 66%; max-width: 88vw; }
+  #anim-bar { bottom: 6px; padding: 4px 8px; max-width: 96vw; }
   .anim-label { display: none; }
+  .anim-btn { padding: 4px 8px; font-size: 11.5px; }
+  .bubble { max-width: 200px; font-size: 12.5px; }
+  #view-characters.active, #view-sheet.active, #view-settings.active { padding: 14px; }
 }
