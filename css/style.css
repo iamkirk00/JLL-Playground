@@ -114,7 +114,9 @@ body {
 #chat-panel {
   width: 360px; max-width: 45vw; display: flex; flex-direction: column;
   background: var(--panel); border-left: 1px solid var(--line);
+  transition: height 0.25s ease;
 }
+#chat-collapse { display: none; }
 #chat-head {
   display: flex; align-items: center; gap: 8px; padding: 10px 12px;
   border-bottom: 1px solid var(--line); flex-wrap: wrap;
@@ -228,6 +230,12 @@ body {
   .tab { padding: 6px 10px; font-size: 12.5px; }
   #view-stage.active { flex-direction: column; }
   #chat-panel { width: 100%; max-width: none; height: 48%; border-left: none; border-top: 1px solid var(--line); }
+  #chat-panel.collapsed { height: 42px; min-height: 42px; overflow: hidden; }
+  #chat-collapse {
+    display: block; width: 100%; flex: none; border: none; cursor: pointer;
+    background: var(--panel); border-bottom: 1px solid var(--line);
+    padding: 11px 8px; font-size: 13px; color: var(--ink-soft); font-style: italic;
+  }
   #chat-head { padding: 8px 10px; gap: 6px; }
   #btn-banter { margin-left: 0; }
   .penguin-mount { height: 66%; max-width: 88vw; }
