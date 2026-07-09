@@ -122,24 +122,28 @@
 <main id="view-settings" class="view">
   <div class="page-intro">
     <h2>Settings</h2>
-    <p>With an Anthropic API key, NPC &amp; CAP think with Claude — in persona, drawing on
+    <p>With an API key, NPC &amp; CAP think with live AI — in persona, drawing on
        their backstories and memories, and challenging your thinking. Without one, they
-       fall back to their built-in scripted personalities.</p>
+       fall back to their built-in scripted personalities. Keys are stored only in this
+       browser and sent only to the provider you pick.</p>
   </div>
   <div class="settings-card">
     <label class="field">
-      <span>Anthropic API key</span>
+      <span>AI provider</span>
+      <div class="seg" id="provider-pick">
+        <button type="button" class="seg-btn active" data-provider="anthropic">Anthropic</button>
+        <button type="button" class="seg-btn" data-provider="groq">Groq</button>
+      </div>
+    </label>
+    <label class="field">
+      <span>API key</span>
       <input id="set-apikey" type="password" placeholder="sk-ant-…">
-      <small>Stored only in this browser (localStorage). Sent only to api.anthropic.com.
-             Create one at console.anthropic.com.</small>
+      <small id="key-help"></small>
     </label>
     <label class="field">
       <span>Model</span>
-      <select id="set-model">
-        <option value="claude-sonnet-5">Claude Sonnet 5 (recommended)</option>
-        <option value="claude-opus-4-8">Claude Opus 4.8 (deepest)</option>
-        <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5 (fastest/cheapest)</option>
-      </select>
+      <select id="set-model"></select>
+      <small>The recommended model is preselected — just paste a key and Save.</small>
     </label>
     <div class="row-btns">
       <button id="btn-save-settings">Save</button>

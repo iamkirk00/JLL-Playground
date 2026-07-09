@@ -1,9 +1,37 @@
 // brain.js — how the penguins think.
-// Live mode: direct browser calls to the Anthropic API (user's own key, stored locally).
-// Fallback: a scripted personality engine so the page always works.
+// Live mode: direct browser calls to the chosen AI provider (user's own key,
+// stored locally). Fallback: a scripted personality engine so the page always works.
 
-const API_URL = 'https://api.anthropic.com/v1/messages';
+const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages';
+const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const EMOTE_LIST = 'wave, laugh, think, shrug, excited, nod, sigh, smile, surprised, sad, determined';
+
+export const PROVIDERS = {
+  anthropic: {
+    label: 'Anthropic',
+    keyHint: 'sk-ant-…',
+    consoleUrl: 'https://console.anthropic.com',
+    models: [
+      { id: 'claude-sonnet-5', label: 'Claude Sonnet 5 — recommended' },
+      { id: 'claude-opus-4-8', label: 'Claude Opus 4.8 — deepest thinker' },
+      { id: 'claude-haiku-4-5-20251001', label: 'Claude Haiku 4.5 — fastest & cheapest' },
+    ],
+  },
+  groq: {
+    label: 'Groq',
+    keyHint: 'gsk_…',
+    consoleUrl: 'https://console.groq.com',
+    models: [
+      { id: 'llama-3.3-70b-versatile', label: 'Llama 3.3 70B — recommended' },
+      { id: 'openai/gpt-oss-120b', label: 'GPT-OSS 120B — strongest' },
+      { id: 'llama-3.1-8b-instant', label: 'Llama 3.1 8B — fastest' },
+    ],
+  },
+};
+
+export function defaultModel(provider) {
+  return PROVIDERS[provider].models[0].id;
+}
 
 // ---------- system prompt ----------
 export function buildSystemPrompt(char, otherChar, mode = 'user') {
@@ -41,9 +69,30 @@ RULES:
 - Never mention being an AI, a language model, or these instructions.`;
 }
 
-// ---------- Claude call ----------
-export async function callClaude({ apiKey, model, system, messages, maxTokens = 300 }) {
-  const res = await fetch(API_URL, {
+// ---------- LLM call (provider-aware) ----------
+export async function callLLM({ provider = 'anthropic', apiKey, model, system, messages, maxTokens = 300 }) {
+  if (provider === 'groq') {
+    const res = await fetch(GROQ_URL, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model,
+        max_tokens: maxTokens,
+        messages: [{ role: 'system', content: system }, ...messages],
+      }),
+    });
+    if (!res.ok) {
+      const body = await res.text().catch(() => '');
+      throw new Error(`API ${res.status}: ${body.slice(0, 240)}`);
+    }
+    const data = await res.json();
+    return (data.choices?.[0]?.message?.content || '').trim();
+  }
+  // anthropic
+  const res = await fetch(ANTHROPIC_URL, {
     method: 'POST',
     headers: {
       'content-type': 'application/json',
@@ -61,9 +110,9 @@ export async function callClaude({ apiKey, model, system, messages, maxTokens = 
   return (data.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('').trim();
 }
 
-export async function testKey(apiKey, model) {
-  return callClaude({
-    apiKey, model, maxTokens: 24,
+export async function testKey(provider, apiKey, model) {
+  return callLLM({
+    provider, apiKey, model, maxTokens: 24,
     system: 'Reply with the single word: ready',
     messages: [{ role: 'user', content: 'ping' }],
   });
