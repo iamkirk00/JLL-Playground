@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Iceberg Control Tower</title>
+<style>
+  :root {
+    --bg: #0b1220;
+    --panel: #121b2e;
+    --panel-2: #0e1626;
+    --border: #223050;
+    --text: #e7edf8;
+    --muted: #8fa0ba;
+    --ice: #7dd3fc;
+    --green: #34d399;
+    --amber: #fbbf24;
+    --blue: #60a5fa;
+    --red: #f87171;
+    --gray: #64748b;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background:
+      radial-gradient(1100px 500px at 80% -10%, rgba(125, 211, 252, .08), transparent 60%),
+      var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 12px;
+    padding: 22px 28px 6px;
+    max-width: 1200px; margin: 0 auto;
+  }
+  .brand { display: flex; align-items: center; gap: 14px; }
+  .logo {
+    font-size: 30px; width: 54px; height: 54px; display: grid; place-items: center;
+    background: linear-gradient(160deg, #16233c, #0d1526);
+    border: 1px solid var(--border); border-radius: 14px;
+  }
+  h1 { margin: 0; font-size: 21px; letter-spacing: .2px; }
+  .sub { margin: 2px 0 0; color: var(--muted); font-size: 13px; }
+  .counts { display: flex; gap: 8px; }
+  .chip {
+    padding: 5px 12px; border-radius: 999px; font-size: 13px;
+    border: 1px solid var(--border); background: var(--panel-2); color: var(--muted);
+  }
+  .chip.run { color: var(--green); border-color: rgba(52, 211, 153, .35); }
+
+  .banner {
+    max-width: 1144px; margin: 12px auto 0; padding: 10px 16px;
+    border: 1px solid rgba(248, 113, 113, .4); border-radius: 10px;
+    background: rgba(248, 113, 113, .08); color: #fca5a5; font-size: 14px;
+  }
+  .hidden { display: none; }
+
+  main {
+    max-width: 1200px; margin: 0 auto; padding: 18px 28px 48px;
+    display: grid; gap: 16px;
+    grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+  }
+
+  .card {
+    background: linear-gradient(170deg, var(--panel), var(--panel-2));
+    border: 1px solid var(--border); border-radius: 16px;
+    padding: 18px 18px 14px; display: flex; flex-direction: column; gap: 10px;
+  }
+  .card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+  .card h2 { margin: 0; font-size: 16px; }
+  .desc { margin: 0; color: var(--muted); font-size: 13px; min-height: 20px; }
+
+  .pill {
+    display: inline-flex; align-items: center; gap: 7px; white-space: nowrap;
+    font-size: 12px; font-weight: 600; letter-spacing: .3px;
+    padding: 4px 11px; border-radius: 999px; border: 1px solid;
+  }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+  .pill.running  { color: var(--green); border-color: rgba(52,211,153,.4);  background: rgba(52,211,153,.09); }
+  .pill.external { color: var(--blue);  border-color: rgba(96,165,250,.4);  background: rgba(96,165,250,.09); }
+  .pill.starting { color: var(--amber); border-color: rgba(251,191,36,.4);  background: rgba(251,191,36,.09); }
+  .pill.stopped  { color: var(--gray);  border-color: rgba(100,116,139,.45); background: rgba(100,116,139,.08); }
+  .pill.running .dot, .pill.starting .dot { animation: pulse 1.6s ease-in-out infinite; }
+  @keyframes pulse { 50% { opacity: .35; } }
+
+  .meta {
+    display: flex; flex-wrap: wrap; gap: 6px 16px;
+    color: var(--muted); font-size: 12.5px;
+    font-variant-numeric: tabular-nums;
+  }
+  .meta b { color: var(--text); font-weight: 600; }
+  .exit { color: var(--red); }
+
+  .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 2px; }
+  button, .btn-link {
+    font: 600 13px/1 system-ui, sans-serif; color: var(--text);
+    background: #1a2740; border: 1px solid var(--border); border-radius: 9px;
+    padding: 8px 14px; cursor: pointer; text-decoration: none; display: inline-block;
+  }
+  button:hover:not(:disabled), .btn-link:hover { border-color: var(--ice); }
+  button:disabled { opacity: .45; cursor: default; }
+  button.primary { background: rgba(52, 211, 153, .15); border-color: rgba(52, 211, 153, .5); color: var(--green); }
+  button.danger  { background: rgba(248, 113, 113, .12); border-color: rgba(248, 113, 113, .45); color: var(--red); }
+  button.ghost, .btn-link { background: transparent; }
+
+  /* log slide-over */
+  #logpanel {
+    position: fixed; inset: 0 0 0 auto; width: min(620px, 100vw);
+    background: var(--panel-2); border-left: 1px solid var(--border);
+    transform: translateX(100%); transition: transform .2s ease;
+    display: flex; flex-direction: column; z-index: 20;
+  }
+  #logpanel.open { transform: none; box-shadow: -30px 0 60px rgba(0,0,0,.45); }
+  #logpanel header { padding: 16px 20px; margin: 0; max-width: none; border-bottom: 1px solid var(--border); }
+  #logpanel h3 { margin: 0; font-size: 15px; }
+  #logbody {
+    flex: 1; margin: 0; padding: 14px 20px; overflow: auto;
+    font: 12px/1.55 ui-monospace, "Cascadia Code", Consolas, monospace;
+    color: #b9c6dd; white-space: pre-wrap; word-break: break-word;
+  }
+
+  #toast {
+    position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%) translateY(20px);
+    background: #1a2740; border: 1px solid var(--border); border-radius: 10px;
+    padding: 10px 18px; font-size: 14px; opacity: 0; pointer-events: none;
+    transition: opacity .2s, transform .2s; z-index: 30; max-width: 90vw;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%); }
+  #toast.err { border-color: rgba(248,113,113,.5); color: #fca5a5; }
+
+  footer { text-align: center; color: var(--muted); font-size: 12px; padding-bottom: 28px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="logo">🧊</div>
+    <div>
+      <h1>Iceberg Control Tower</h1>
+      <p class="sub">Local apps on this machine — status &amp; controls</p>
+    </div>
+  </div>
+  <div class="counts">
+    <span class="chip run" id="count-run">0 running</span>
+    <span class="chip" id="count-stop">0 stopped</span>
+  </div>
+</header>
+
+<div id="offline" class="banner hidden">
+  Controller unreachable — is <code>controller.py</code> still running on this machine?
+</div>
+
+<main id="grid"></main>
+
+<aside id="logpanel" aria-hidden="true">
+  <header>
+    <h3 id="logtitle">Logs</h3>
+    <button class="ghost" onclick="closeLogs()">Close ✕</button>
+  </header>
+  <pre id="logbody"></pre>
+</aside>
+
+<div id="toast"></div>
+<footer>Iceberg Control Tower · polls every 3s · logs live in <code>controller/logs/</code></footer>
+
+<script>
+"use strict";
+
+const grid = document.getElementById("grid");
+const offline = document.getElementById("offline");
+let apps = [];
+let busy = {};        // app id -> true while an action request is in flight
+let logApp = null;    // app id whose logs are open
+let logTimer = null;
+
+const esc = s => String(s ?? "").replace(/[&<>"']/g,
+  c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+const STATUS_LABEL = {
+  running:  "Running",
+  external: "Running (external)",
+  starting: "Starting…",
+  stopped:  "Stopped",
+};
+
+function fmtUptime(s) {
+  if (s == null) return null;
+  const d = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600),
+        m = Math.floor(s % 3600 / 60);
+  if (d) return `${d}d ${h}h`;
+  if (h) return `${h}h ${m}m`;
+  if (m) return `${m}m ${s % 60}s`;
+  return `${s}s`;
+}
+
+function toast(msg, isErr) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.className = "show" + (isErr ? " err" : "");
+  clearTimeout(t._h);
+  t._h = setTimeout(() => t.className = "", 3500);
+}
+
+function render() {
+  const running = apps.filter(a => ["running", "external", "starting"].includes(a.status)).length;
+  document.getElementById("count-run").textContent = `● ${running} running`;
+  document.getElementById("count-stop").textContent = `${apps.length - running} stopped`;
+
+  grid.innerHTML = apps.map(a => {
+    const b = busy[a.id];
+    const label = b ? (b === "stop" ? "Stopping…" : "Starting…") : STATUS_LABEL[a.status];
+    const pillCls = b ? "starting" : a.status;
+    const up = fmtUptime(a.uptime);
+    const canStart = a.status === "stopped" && !b;
+    const canStop = a.canStop && a.status !== "stopped" && !b;
+    return `
+    <div class="card">
+      <div class="card-top">
+        <h2>${esc(a.name)}</h2>
+        <span class="pill ${pillCls}"><span class="dot"></span>${label}</span>
+      </div>
+      <p class="desc">${esc(a.description)}</p>
+      <div class="meta">
+        ${a.port ? `<span>port <b>${a.port}</b></span>` : ""}
+        ${a.pid ? `<span>pid <b>${a.pid}</b></span>` : ""}
+        ${up ? `<span>up <b>${up}</b></span>` : ""}
+        ${a.status === "external" ? `<span>started outside the controller</span>` : ""}
+        ${a.exitCode != null && a.status === "stopped" ? `<span class="exit">last exit code ${a.exitCode}</span>` : ""}
+      </div>
+      <div class="actions">
+        <button class="primary" ${canStart ? "" : "disabled"} onclick="act('${a.id}','start')">Start</button>
+        <button class="danger" ${canStop ? "" : "disabled"} onclick="act('${a.id}','stop')">Stop</button>
+        <button ${a.status === "running" && !b ? "" : "disabled"} onclick="act('${a.id}','restart')">Restart</button>
+        ${a.openUrl ? `<a class="btn-link" href="${esc(a.openUrl)}" target="_blank" rel="noopener">Open ↗</a>` : ""}
+        <button class="ghost" ${a.hasLog ? "" : "disabled"} onclick="openLogs('${a.id}')">Logs</button>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+async function refresh() {
+  try {
+    const r = await fetch("/api/apps");
+    const data = await r.json();
+    apps = data.apps || [];
+    offline.classList.add("hidden");
+  } catch {
+    offline.classList.remove("hidden");
+  }
+  render();
+}
+
+async function act(id, action) {
+  busy[id] = action;
+  render();
+  try {
+    const r = await fetch(`/api/apps/${id}/${action}`, { method: "POST" });
+    const data = await r.json();
+    const app = apps.find(a => a.id === id);
+    toast(`${app ? app.name : id}: ${data.message || (data.ok ? "ok" : "failed")}`, !data.ok);
+  } catch {
+    toast("Controller unreachable", true);
+  }
+  delete busy[id];
+  await refresh();
+}
+
+async function fetchLog() {
+  if (!logApp) return;
+  try {
+    const r = await fetch(`/api/apps/${logApp}/logs`);
+    const data = await r.json();
+    const body = document.getElementById("logbody");
+    const atBottom = body.scrollHeight - body.scrollTop - body.clientHeight < 40;
+    body.textContent = data.log || "(log is empty)";
+    if (atBottom) body.scrollTop = body.scrollHeight;
+  } catch { /* panel shows last content; banner covers the rest */ }
+}
+
+function openLogs(id) {
+  logApp = id;
+  const app = apps.find(a => a.id === id);
+  document.getElementById("logtitle").textContent = `Logs — ${app ? app.name : id}`;
+  document.getElementById("logbody").textContent = "loading…";
+  document.getElementById("logpanel").classList.add("open");
+  fetchLog();
+  clearInterval(logTimer);
+  logTimer = setInterval(fetchLog, 2000);
+}
+
+function closeLogs() {
+  logApp = null;
+  clearInterval(logTimer);
+  document.getElementById("logpanel").classList.remove("open");
+}
+
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeLogs(); });
+
+refresh();
+setInterval(refresh, 3000);
+</script>
+</body>
+</html>

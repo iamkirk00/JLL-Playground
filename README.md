@@ -66,6 +66,14 @@ python3 -m http.server 8080   # or any static server
 3. Keys are stored only in your browser's localStorage and sent only to the chosen
    provider's API. Don't use a shared/production key on a public computer.
 
+## Bonus: local app controller
+
+The `controller/` folder contains **Iceberg Control Tower** — a standalone,
+dependency-free dashboard for the *other* local web apps you run on your own
+machine: it shows each app's status and lets you start/stop/restart them and
+tail their logs from one page. It's unrelated to the penguins; see
+[`controller/README.md`](controller/README.md).
+
 ## Project layout
 
 ```

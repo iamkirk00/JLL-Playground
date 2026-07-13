@@ -1,0 +1,44 @@
+{
+  "controller": { "host": "127.0.0.1", "port": 9500 },
+
+  "_note": "EDIT ME: set each app's real folder (cwd), start command, and port. Delete apps you don't have; add as many as you like. See controller/README.md for every field.",
+
+  "apps": [
+    {
+      "id": "html-editor",
+      "name": "HTML Editor",
+      "description": "Local HTML editing app",
+      "cwd": "~/projects/html-editor",
+      "startCommand": "python3 -m http.server 8081",
+      "port": 8081,
+      "openUrl": "http://localhost:8081"
+    },
+    {
+      "id": "video-gen",
+      "name": "Local AI Video Generation",
+      "description": "AI video generation running on this machine",
+      "cwd": "~/projects/video-gen",
+      "startCommand": "python3 app.py",
+      "port": 7860,
+      "openUrl": "http://localhost:7860"
+    },
+    {
+      "id": "pricing-tool",
+      "name": "Pricing Tool",
+      "description": "Pricing calculator",
+      "cwd": "~/projects/pricing-tool",
+      "startCommand": "streamlit run app.py --server.port 8501 --server.headless true",
+      "port": 8501,
+      "openUrl": "http://localhost:8501"
+    },
+    {
+      "id": "whisperflow",
+      "name": "WhisperFlow",
+      "description": "Whisper speech-to-text flow",
+      "cwd": "~/projects/whisperflow",
+      "startCommand": "python3 app.py",
+      "port": 5000,
+      "openUrl": "http://localhost:5000"
+    }
+  ]
+}
