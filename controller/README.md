@@ -18,13 +18,14 @@ It has **no dependencies** beyond Python 3.8+ — no pip installs, no build.
    copy the `controller/` folder — it's self-contained).
 2. Edit **`apps.json`**: for each app set its real folder, start command, and
    port (see below). Remove the placeholder entries you don't need.
-3. Run it:
+3. Run it — either double-click **`start.bat`** (Windows) / run **`./start.sh`**
+   (macOS/Linux), or from a terminal:
 
    ```bash
    python3 controller.py        # Windows: py controller.py
    ```
 
-4. Open **http://localhost:9500**.
+4. Open **http://localhost:9500** (`start.bat` opens it for you).
 
 ## Configuring your apps (`apps.json`)
 
