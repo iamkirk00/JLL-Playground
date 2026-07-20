@@ -24,6 +24,13 @@ hand-drawn pencil animation. No external assets, no 3D engine.
   on their editable backstories and memories; replies start with an emote tag
   (`[wave]`, `[think]`, …) that drives their animation. Without a key, a built-in
   scripted personality engine keeps the page fully working.
+- **Family Voices** 🎙 — record short clips of real family members (a hello, a
+  laugh, a victory whoop) in the browser. They join the **Family cameo**
+  soundboard on the stage — play one and the penguins react to it in character.
+  Clips stay on-device until you seal them into an **encrypted voice vault**
+  (`voices/family.vault`, AES-256-GCM with a family passphrase) that can safely
+  live in this public repo: the repo only ever holds scrambled bytes, and any
+  family device can unlock the whole crew with the passphrase.
 - **Phone-friendly** — on small screens only the penguin you're talking to takes
   the stage (both appear in "Both" mode or during banter), with a compact layout.
 - **Character Studio** — edit each penguin's name, tagline, personality, backstory,
@@ -73,6 +80,7 @@ index.html            page shell + tabs (Stage / Characters / Sheet / Settings)
 css/style.css         all styling incl. the paper stage
 js/sketch-penguin.js  pencil-style SVG puppets: drawing, rig, expressions, poses, FSM
 js/brain.js           Claude API client, system-prompt builder, scripted fallback
+js/familyVoices.js    voice booth, IndexedDB clip store, encrypted vault, cameo soundboard
 js/sheet.js           character-sheet renderer/exporter (SVG → PNG)
 js/app.js             stage, chat orchestration, editors, UI wiring
 data/personas.js      default character minds + localStorage persistence

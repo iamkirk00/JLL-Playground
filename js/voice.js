@@ -42,6 +42,23 @@ export function stopSpeaking() {
   if (currentAudio) { currentAudio.pause(); currentAudio = null; }
 }
 
+// Play an arbitrary audio Blob (used by Family Voices cameos).
+export function playBlob(blob, { onstart, onend } = {}) {
+  const url = URL.createObjectURL(blob);
+  stopSpeaking();
+  const audio = new Audio(url);
+  currentAudio = audio;
+  audio.onplay = () => onstart?.();
+  const done = () => {
+    onend?.();
+    URL.revokeObjectURL(url);
+    if (currentAudio === audio) currentAudio = null;
+  };
+  audio.onended = done;
+  audio.onerror = done;
+  return audio.play().catch(done);
+}
+
 // cfg: { engine: 'device'|'groq', deviceVoiceName, groqKey, groqVoice }
 export async function speakText(charId, text, cfg, { onstart, onend } = {}) {
   const clean = text.replace(/\s+/g, ' ').trim();
