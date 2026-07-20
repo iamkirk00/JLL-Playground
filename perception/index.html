@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#0b0e14">
+<title>Perception Lens — prototype</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; overflow: hidden; background: #0b0e14; color: #e8ecf4;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  #stage { position: fixed; inset: 0; touch-action: none; }
+  #view { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+  #topbar {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 5;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: calc(env(safe-area-inset-top) + 10px) 16px 10px;
+    background: linear-gradient(rgba(11,14,20,.75), transparent);
+    pointer-events: none;
+  }
+  #topbar .brand { font-size: 14px; font-weight: 600; letter-spacing: .04em; opacity: .9; }
+  #boostBadge {
+    font-variant-numeric: tabular-nums; font-size: 13px; font-weight: 700;
+    background: rgba(20,26,38,.7); border: 1px solid rgba(255,255,255,.15);
+    border-radius: 999px; padding: 4px 12px; backdrop-filter: blur(6px);
+  }
+
+  #controls {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 5;
+    padding: 12px 16px calc(env(safe-area-inset-bottom) + 14px);
+    background: linear-gradient(transparent, rgba(11,14,20,.85) 40%);
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .row { display: flex; align-items: center; gap: 12px; }
+  .row label { font-size: 11px; text-transform: uppercase; letter-spacing: .08em;
+    opacity: .7; width: 44px; flex: none; }
+  input[type=range] { flex: 1; accent-color: #7fb4ff; height: 28px; }
+
+  #modes { display: flex; background: rgba(20,26,38,.7); border-radius: 12px;
+    padding: 3px; gap: 3px; border: 1px solid rgba(255,255,255,.1); }
+  #modes button {
+    flex: 1; border: 0; background: transparent; color: #aeb8cc;
+    font-size: 13px; font-weight: 600; padding: 8px 0; border-radius: 9px; cursor: pointer;
+  }
+  #modes button.active { background: #2b3a55; color: #fff; }
+
+  #actionRow { display: flex; align-items: center; justify-content: space-between; }
+  #rawBtn {
+    border: 1px solid rgba(255,255,255,.25); background: rgba(20,26,38,.7);
+    color: #e8ecf4; font-size: 12px; font-weight: 700; letter-spacing: .06em;
+    border-radius: 10px; padding: 12px 16px; cursor: pointer; user-select: none; -webkit-user-select: none;
+  }
+  #rawBtn:active { background: #445; }
+  #shutter {
+    width: 68px; height: 68px; border-radius: 50%; border: 4px solid #fff;
+    background: rgba(255,255,255,.25); cursor: pointer; flex: none;
+  }
+  #shutter:active { background: #fff; }
+  #spacer { width: 76px; }
+
+  #hint {
+    text-align: center; font-size: 12px; opacity: .75; min-height: 15px;
+  }
+
+  #startOverlay, #errOverlay {
+    position: fixed; inset: 0; z-index: 10; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 18px; text-align: center;
+    background: #0b0e14; padding: 32px;
+  }
+  #startOverlay h1 { font-size: 22px; }
+  #startOverlay p, #errOverlay p { font-size: 14px; line-height: 1.5; opacity: .8; max-width: 340px; }
+  #startBtn {
+    font-size: 16px; font-weight: 700; color: #0b0e14; background: #7fb4ff;
+    border: 0; border-radius: 12px; padding: 14px 28px; cursor: pointer;
+  }
+  #errOverlay { display: none; }
+
+  #flash { position: fixed; inset: 0; background: #fff; opacity: 0;
+    pointer-events: none; z-index: 8; transition: opacity .35s ease-out; }
+
+  #toast {
+    position: fixed; left: 50%; bottom: 190px; transform: translateX(-50%);
+    z-index: 9; background: rgba(20,26,38,.9); border: 1px solid rgba(255,255,255,.15);
+    border-radius: 10px; padding: 8px 14px; font-size: 13px; opacity: 0;
+    transition: opacity .3s; pointer-events: none; white-space: nowrap;
+  }
+</style>
+</head>
+<body>
+  <div id="stage"><canvas id="view"></canvas></div>
+
+  <div id="topbar">
+    <div class="brand">PERCEPTION&nbsp;LENS</div>
+    <div id="boostBadge">2.0×</div>
+  </div>
+
+  <div id="controls">
+    <div id="hint">Tap the moon (or any distant subject) to place the lens</div>
+    <div id="modes">
+      <button id="modeMoon" class="active">🌕 Moon</button>
+      <button id="modeRidge">🏔 Ridge</button>
+    </div>
+    <div class="row"><label>Boost</label>
+      <input id="boost" type="range" min="1" max="3.5" step="0.05" value="2"></div>
+    <div class="row" id="sizeRow"><label>Size</label>
+      <input id="size" type="range" min="0.05" max="0.3" step="0.005" value="0.14"></div>
+    <div id="actionRow">
+      <button id="rawBtn">HOLD&nbsp;RAW</button>
+      <button id="shutter" aria-label="Capture"></button>
+      <div id="spacer"></div>
+    </div>
+  </div>
+
+  <div id="flash"></div>
+  <div id="toast"></div>
+
+  <div id="startOverlay">
+    <h1>🌄 Perception Lens</h1>
+    <p>Capture landscapes the way your eye sees them. The live preview shows
+       exactly what the saved photo will look like.</p>
+    <button id="startBtn">Start camera</button>
+    <p style="font-size:12px;opacity:.55">Requires camera permission · works best outdoors on a phone</p>
+  </div>
+
+  <div id="errOverlay">
+    <h1>😕 Camera unavailable</h1>
+    <p id="errMsg"></p>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
