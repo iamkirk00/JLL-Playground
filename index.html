@@ -23,6 +23,7 @@
   <nav id="tabs">
     <button class="tab active" data-tab="stage">Stage</button>
     <button class="tab" data-tab="characters">Characters</button>
+    <button class="tab" data-tab="family">Family Voices</button>
     <button class="tab" data-tab="sheet">Character Sheet</button>
     <button class="tab" data-tab="settings">Settings</button>
   </nav>
@@ -52,6 +53,7 @@
     <div id="bubble-npc" class="bubble npc hidden"></div>
     <div id="bubble-cap" class="bubble cap hidden"></div>
     <div id="stage-hint">a living sketch — say hi</div>
+    <div id="cameo-bar"></div>
     <div id="anim-bar">
       <span class="anim-label">Direct them:</span>
       <button class="anim-btn" data-anim="wave">👋 Wave</button>
@@ -101,6 +103,19 @@
     </div>
   </div>
   <div id="char-editors"></div>
+</main>
+
+<!-- ============ FAMILY VOICES ============ -->
+<main id="view-family" class="view">
+  <div class="page-intro">
+    <h2>Family Voices</h2>
+    <p>Put the real crew on the stage. Record short clips of each family member —
+       a hello, a laugh, a victory whoop — and they join the <strong>Family cameo</strong>
+       soundboard, where the penguins hear them and react. Clips stay on this device
+       until you seal them into an encrypted vault; only the scrambled vault ever
+       goes in the public repo, and only the family passphrase can open it.</p>
+  </div>
+  <div id="voice-booth"></div>
 </main>
 
 <!-- ============ SHEET ============ -->

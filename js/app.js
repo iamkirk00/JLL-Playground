@@ -1,7 +1,8 @@
 // app.js — paper stage, chat orchestration, editors, sheet UI.
 import { SketchPenguin, PENGUIN_CONFIGS, EMOTES } from './sketch-penguin.js';
 import { buildSystemPrompt, callLLM, testKey, parseEmote, scriptedReply, scriptedBanter, PROVIDERS, defaultModel } from './brain.js';
-import { speakText, stopSpeaking, listDeviceVoices, GROQ_TTS_VOICES } from './voice.js';
+import { speakText, stopSpeaking, playBlob, listDeviceVoices, GROQ_TTS_VOICES } from './voice.js';
+import { createFamilyVoices } from './familyVoices.js';
 import { loadCharacters, saveCharacters, resetCharacters, loadSettings, saveSettings, DEFAULT_CHARACTERS } from '../data/personas.js';
 import { generateSheet, renderSingle, downloadCanvas } from './sheet.js';
 
@@ -382,12 +383,61 @@ $$('.anim-btn').forEach((btn) => btn.addEventListener('click', () => {
   }
 }));
 
+// ============================================================ family voices
+const familyVoices = createFamilyVoices({
+  dbName: 'rookery.voices',
+  vaultUrl: 'voices/family.vault',
+  playBlob,
+  onChange: () => {
+    familyVoices.renderSoundboard($('#cameo-bar'), onCameo);
+    if ($('#view-family').classList.contains('active')) familyVoices.renderBooth($('#voice-booth'));
+  },
+});
+familyVoices.init().then(() => familyVoices.renderSoundboard($('#cameo-bar'), onCameo));
+
+// Scripted reactions when a real family voice plays on the stage.
+const pickOf = (arr) => arr[Math.floor(Math.random() * arr.length)];
+const CAMEO_LINES = {
+  cap: [
+    '[excited] {m}! Now THAT is a voice that warms the whole colony. Again!',
+    "[laugh] You hear that, NPC? {m} just out-sang the morning chorus.",
+    '[wave] {m} on the ice! Best sound all day.',
+  ],
+  npc: [
+    '[surprised] Was that {m}? The ice has a PA system now. Concerning. Kind of great.',
+    '[shrug] {m} speaks, and suddenly everyone listens. I take notes.',
+    "[nod] Heard you, {m}. I'm choosing to interpret that as applause.",
+  ],
+};
+
+async function onCameo(member, label) {
+  if (busy) return;
+  const id = who === 'both' ? (Math.random() < 0.5 ? 'cap' : 'npc') : who;
+  performEmote(id, 'surprised');
+  await new Promise((r) => setTimeout(r, 1100)); // let the clip land first
+  busy = true;
+  try {
+    if (hasKey()) {
+      await charRespond(id, `(Family cameo: ${member}'s real recorded voice just played on the stage — they said "${label}". React briefly in character, addressing ${member} by name. Do not treat this as the user typing.)`);
+    } else {
+      const raw = pickOf(CAMEO_LINES[id]).replaceAll('{m}', member);
+      const { emote, text } = parseEmote(raw);
+      if (emote) performEmote(id, emote);
+      addMsg(id, text, characters[id].name);
+      await speak(id, text);
+    }
+  } finally {
+    busy = false;
+  }
+}
+
 // ============================================================ tabs
 $$('#tabs .tab').forEach((btn) => btn.addEventListener('click', () => {
   $$('#tabs .tab').forEach((b) => b.classList.remove('active'));
   btn.classList.add('active');
   $$('.view').forEach((v) => v.classList.remove('active'));
   $(`#view-${btn.dataset.tab}`).classList.add('active');
+  if (btn.dataset.tab === 'family') familyVoices.renderBooth($('#voice-booth'));
   // device voice lists load lazily on some platforms — refresh when visiting settings
   if (btn.dataset.tab === 'settings' && settings.voice.engine === 'device') renderVoiceRows();
 }));
